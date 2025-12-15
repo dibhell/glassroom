@@ -75,6 +75,14 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
     };
   }, []);
 
+  // Standard style for vertical range inputs
+  const verticalRangeStyle: React.CSSProperties = {
+    writingMode: 'vertical-lr',
+    direction: 'rtl', 
+    appearance: 'auto',
+    width: '100%' // Helps align hit area in some browsers
+  };
+
   return (
     <div className="w-full max-w-5xl mx-auto bg-[#D9DBD6] border border-[#B9BCB7] rounded-3xl p-6 shadow-lg relative mt-12 mb-20 text-[#5F665F] font-mono tracking-widest select-none">
       
@@ -129,7 +137,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                         value={settings.volume} 
                         onChange={(e) => setSettings(p => ({ ...p, volume: parseFloat(e.target.value) }))}
                         className="h-full w-6 opacity-0 cursor-pointer absolute z-10"
-                        style={{ appearance: 'slider-vertical' as any }}
+                        style={verticalRangeStyle}
                     />
                      {/* Custom Thumb Visual - Simple circle that moves */}
                      <div 
@@ -165,7 +173,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                             value={(settings[band as keyof AudioSettings] as number * 5) + 50} 
                             onChange={(e) => handleEQChange(band as any, parseFloat(e.target.value))}
                             className="absolute inset-0 opacity-0 cursor-pointer"
-                            style={{ appearance: 'slider-vertical' as any }} 
+                            style={verticalRangeStyle} 
                         />
                     </div>
                     <span className="text-[8px] uppercase">{band}</span>
