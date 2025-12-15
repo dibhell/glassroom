@@ -24,7 +24,27 @@ import {
   Snowflake
 } from 'lucide-react';
 
-const VERSION = "v1.2.1";
+const VERSION = "v1.2.2";
+
+// Moved outside to prevent re-creation on every render (which kills drag events)
+const KnobWithIcon = ({ value, onChange, icon: Icon, label, defaultValue = 0.0 }: any) => (
+  <div className="flex flex-col items-center gap-2 group relative w-20" title={label}>
+    <Knob 
+      value={value} 
+      onChange={onChange} 
+      min={0}
+      max={1}
+      step={0.01}
+      defaultValue={defaultValue}
+      size={46}
+      color="#7A8476"
+      format={(v) => v.toFixed(2)}
+    />
+    <div className="text-[#5F665F] group-hover:text-[#3F453F] transition-colors flex flex-col items-center gap-1 mt-1">
+      <Icon size={16} strokeWidth={1.5} />
+    </div>
+  </div>
+);
 
 const App: React.FC = () => {
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -119,25 +139,6 @@ const App: React.FC = () => {
       visualizerRef.current.reset();
     }
   };
-
-  const KnobWithIcon = ({ value, onChange, icon: Icon, label, defaultValue = 0.0 }: any) => (
-    <div className="flex flex-col items-center gap-2 group relative w-20" title={label}>
-      <Knob 
-        value={value} 
-        onChange={onChange} 
-        min={0}
-        max={1}
-        step={0.01}
-        defaultValue={defaultValue}
-        size={46}
-        color="#7A8476"
-        format={(v) => v.toFixed(2)}
-      />
-      <div className="text-[#5F665F] group-hover:text-[#3F453F] transition-colors flex flex-col items-center gap-1 mt-1">
-        <Icon size={16} strokeWidth={1.5} />
-      </div>
-    </div>
-  );
 
   const GroupLabel = ({text}: {text: string}) => (
       <div className="absolute -top-3 left-4 bg-[#F2F2F0] px-2 text-[9px] text-[#7A8476] tracking-widest uppercase border border-[#B9BCB7] rounded-full">
