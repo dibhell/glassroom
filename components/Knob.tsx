@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface KnobProps {
   label?: string;
@@ -26,42 +26,35 @@ export const Knob: React.FC<KnobProps> = ({
   size = 48,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
-
   const startY = useRef(0);
   const startValue = useRef(0);
 
-  const activePointerId = useRef<number | null>(null);
-  const pointerTypeRef = useRef<string | null>(null);
+  const knobRef = useRef<HTMLDivElement | null>(null);
+  const draggingRef = useRef(false);
 
   const range = max - min;
-
-  const normalized = useMemo(() => {
-    if (range <= 0) return 0;
-    return Math.min(1, Math.max(0, (value - min) / range));
-  }, [value, min, range]);
-
+  const normalized = range <= 0 ? 0 : Math.min(1, Math.max(0, (value - min) / range));
   const rotation = normalized * 270 - 135;
-
-  const clampSnap = (v: number) => {
-    const snapped = Math.round(v / step) * step;
-    return Math.max(min, Math.min(max, snapped));
-  };
 
   const processMove = (clientY: number) => {
     const deltaY = startY.current - clientY;
     const sensitivity = range / 200;
 
-    const next = startValue.current + deltaY * sensitivity;
-    onChange(clampSnap(next));
+    let newValue = startValue.current + deltaY * sensitivity;
+    newValue = Math.round(newValue / step) * step;
+    newValue = Math.max(min, Math.min(max, newValue));
+
+    onChange(newValue);
   };
 
-  // ---------- MOUSE (zostawiamy PC feeling) ----------
+  // ---------- MOUSE ----------
   const handleMouseMove = (e: MouseEvent) => {
     e.preventDefault();
     processMove(e.clientY);
   };
 
   const handleMouseUp = () => {
+    draggingRef.current = false;
     setIsDragging(false);
     document.body.style.cursor = '';
     window.removeEventListener('mousemove', handleMouseMove);
@@ -70,6 +63,7 @@ export const Knob: React.FC<KnobProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    draggingRef.current = true;
     setIsDragging(true);
     startY.current = e.clientY;
     startValue.current = value;
@@ -78,54 +72,43 @@ export const Knob: React.FC<KnobProps> = ({
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  // ---------- POINTER (TOUCH + PEN) ----------
-  // Używamy capture, żeby nie gubić drag jak palec wyjdzie poza knob.
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Nie wchodź w pointer dla myszy - bo PC już działa idealnie
-    if (e.pointerType === 'mouse') return;
+  // ---------- TOUCH (NATIVE, passive:false) ----------
+  useEffect(() => {
+    const el = knobRef.current;
+    if (!el) return;
 
-    pointerTypeRef.current = e.pointerType;
-    activePointerId.current = e.pointerId;
+    const onTouchMoveNative = (ev: TouchEvent) => {
+      if (!draggingRef.current) return;
+      // to MUSI być native + passive:false żeby Chrome Android nie scrollował
+      ev.preventDefault();
+      const t = ev.touches[0];
+      if (!t) return;
+      processMove(t.clientY);
+    };
 
+    el.addEventListener('touchmove', onTouchMoveNative, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchmove', onTouchMoveNative as any);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, step, min, max, onChange]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    draggingRef.current = true;
     setIsDragging(true);
-    startY.current = e.clientY;
+    startY.current = e.touches[0].clientY;
     startValue.current = value;
-
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-
-    // Klucz: blokuj gest przewijania tylko na czas drag
-    e.preventDefault();
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (activePointerId.current !== e.pointerId) return;
-    if (!isDragging) return;
-    if (pointerTypeRef.current === 'mouse') return;
-
-    e.preventDefault();
-    processMove(e.clientY);
-  };
-
-  const endPointerDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (activePointerId.current !== e.pointerId) return;
-
-    activePointerId.current = null;
-    pointerTypeRef.current = null;
+  const handleTouchEnd = () => {
+    draggingRef.current = false;
     setIsDragging(false);
   };
 
   const handleDoubleClick = () => {
-    if (defaultValue !== undefined) onChange(clampSnap(defaultValue));
+    if (defaultValue !== undefined) onChange(defaultValue);
   };
-
-  useEffect(() => {
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // SVG
   const r = size / 2 - 4;
@@ -136,19 +119,18 @@ export const Knob: React.FC<KnobProps> = ({
   return (
     <div className="flex flex-col items-center gap-1 select-none">
       <div
+        ref={knobRef}
         className="relative cursor-ns-resize group"
         style={{
           width: size,
           height: size,
-          // ważne: scroll działa, dopóki nie przejmiesz pointera
+          // scroll działa normalnie, dopóki nie kręcisz
           touchAction: isDragging ? 'none' : 'pan-y',
-          userSelect: 'none',
         }}
         onMouseDown={handleMouseDown}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endPointerDrag}
-        onPointerCancel={endPointerDrag}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         onDoubleClick={handleDoubleClick}
         title="Double-click to reset"
       >
