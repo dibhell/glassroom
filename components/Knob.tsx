@@ -29,9 +29,12 @@ export const Knob: React.FC<KnobProps> = ({
 
   const startY = useRef(0);
   const startValue = useRef(0);
+
   const activePointerId = useRef<number | null>(null);
+  const pointerTypeRef = useRef<string | null>(null);
 
   const range = max - min;
+
   const normalized = useMemo(() => {
     if (range <= 0) return 0;
     return Math.min(1, Math.max(0, (value - min) / range));
@@ -45,60 +48,83 @@ export const Knob: React.FC<KnobProps> = ({
   };
 
   const processMove = (clientY: number) => {
-    const deltaY = startY.current - clientY; // up = +
+    const deltaY = startY.current - clientY;
     const sensitivity = range / 200;
+
     const next = startValue.current + deltaY * sensitivity;
     onChange(clampSnap(next));
   };
 
-  const endDrag = () => {
-    setIsDragging(false);
-    document.body.style.cursor = '';
-    activePointerId.current = null;
+  // ---------- MOUSE (zostawiamy PC feeling) ----------
+  const handleMouseMove = (e: MouseEvent) => {
+    e.preventDefault();
+    processMove(e.clientY);
   };
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    document.body.style.cursor = '';
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
+  };
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    startY.current = e.clientY;
+    startValue.current = value;
+    document.body.style.cursor = 'ns-resize';
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // ---------- POINTER (TOUCH + PEN) ----------
+  // Używamy capture, żeby nie gubić drag jak palec wyjdzie poza knob.
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Nie wchodź w pointer dla myszy - bo PC już działa idealnie
+    if (e.pointerType === 'mouse') return;
+
+    pointerTypeRef.current = e.pointerType;
     activePointerId.current = e.pointerId;
+
     setIsDragging(true);
     startY.current = e.clientY;
     startValue.current = value;
 
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    document.body.style.cursor = 'ns-resize';
 
-    // ważne na mobile: od razu zatrzymaj “native gesture”
+    // Klucz: blokuj gest przewijania tylko na czas drag
     e.preventDefault();
   };
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (activePointerId.current !== e.pointerId) return;
+    if (!isDragging) return;
+    if (pointerTypeRef.current === 'mouse') return;
 
-    // bez tego Android potrafi próbować scrollować w tle
     e.preventDefault();
     processMove(e.clientY);
   };
 
-  const onPointerUp = (e: React.PointerEvent) => {
+  const endPointerDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if (activePointerId.current !== e.pointerId) return;
-    endDrag();
+
+    activePointerId.current = null;
+    pointerTypeRef.current = null;
+    setIsDragging(false);
   };
 
-  const onPointerCancel = (e: React.PointerEvent) => {
-    if (activePointerId.current !== e.pointerId) return;
-    endDrag();
-  };
-
-  const onDoubleClick = () => {
+  const handleDoubleClick = () => {
     if (defaultValue !== undefined) onChange(clampSnap(defaultValue));
   };
 
   useEffect(() => {
     return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // SVG
@@ -114,16 +140,16 @@ export const Knob: React.FC<KnobProps> = ({
         style={{
           width: size,
           height: size,
-          // klucz: scroll działa w appce, ale gdy dotkniesz gałki i zaczniesz dragować,
-          // pointer capture + preventDefault przejmują sterowanie bez hacków na body
-          touchAction: 'manipulation',
+          // ważne: scroll działa, dopóki nie przejmiesz pointera
+          touchAction: isDragging ? 'none' : 'pan-y',
           userSelect: 'none',
         }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerCancel}
-        onDoubleClick={onDoubleClick}
+        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endPointerDrag}
+        onPointerCancel={endPointerDrag}
+        onDoubleClick={handleDoubleClick}
         title="Double-click to reset"
       >
         <svg width={size} height={size} className="transform rotate-90 drop-shadow-sm pointer-events-none">
