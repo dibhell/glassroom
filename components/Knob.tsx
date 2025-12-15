@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 interface KnobProps {
   label?: string;
@@ -22,9 +22,16 @@ export const Knob: React.FC<KnobProps> = ({
   step = 0.01,
   onChange,
   format,
-  color = "#7A8476",
+  color = '#7A8476',
   size = 48,
 }) => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  const startY = useRef(0);
+  const startValue = useRef(0);
+  const activePointerId = useRef<number | null>(null);
+  const activePointerType = useRef<string | null>(null); // 'mouse' | 'touch' | 'pen'
+
   const range = max - min;
 
   const normalized = useMemo(() => {
@@ -34,131 +41,115 @@ export const Knob: React.FC<KnobProps> = ({
 
   const rotation = normalized * 270 - 135;
 
-  // Drag state
-  const [isDragging, setIsDragging] = useState(false);
-
-  const knobRef = useRef<HTMLDivElement | null>(null);
-  const pointerIdRef = useRef<number | null>(null);
-
-  const startY = useRef(0);
-  const startValue = useRef(0);
-
-  // “Intent” gate: do not start drag immediately on touch, to not kill scrolling
-  const isPressed = useRef(false);
-  const hasActivatedDrag = useRef(false);
-
-  const DEADZONE_PX = 6; // small threshold before we “commit” to knob turning
-
-  const clampAndSnap = (v: number) => {
+  const clampSnap = (v: number) => {
     const snapped = Math.round(v / step) * step;
     return Math.max(min, Math.min(max, snapped));
   };
 
-  const valueFromDeltaY = (deltaY: number) => {
-    const sensitivity = range / 200; // 200px for full range
+  const processMove = (clientY: number) => {
+    const deltaY = startY.current - clientY; // up = positive
+    const sensitivity = range / 200; // jak w Twoim “starym”
     const next = startValue.current + deltaY * sensitivity;
-    return clampAndSnap(next);
+    onChange(clampSnap(next));
   };
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    // Only primary button for mouse, but allow touch/pen
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-
-    isPressed.current = true;
-    hasActivatedDrag.current = false;
-
-    pointerIdRef.current = e.pointerId;
-    startY.current = e.clientY;
-    startValue.current = value;
-
-    // Capture pointer so movement continues even if cursor/finger leaves knob
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-
-    // Don’t preventDefault yet - allow scrolling until we detect intent
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isPressed.current) return;
-    if (pointerIdRef.current !== e.pointerId) return;
-
-    const dy = startY.current - e.clientY; // up = positive
-
-    if (!hasActivatedDrag.current) {
-      if (Math.abs(dy) < DEADZONE_PX) return;
-
-      // Commit to drag
-      hasActivatedDrag.current = true;
-      setIsDragging(true);
-
-      // Once we commit, we stop native behaviors (scroll, text selection)
-      e.preventDefault();
-      document.body.style.cursor = "ns-resize";
+  const lockPageScrollIfTouch = () => {
+    if (activePointerType.current === 'touch') {
+      // zachowanie jak w starym pliku: blokuj scroll tylko w trakcie kręcenia
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     }
+  };
 
-    // If dragging, prevent default to keep page from scrolling during drag
-    if (hasActivatedDrag.current) e.preventDefault();
-
-    const newValue = valueFromDeltaY(dy);
-    onChange(newValue);
+  const unlockPageScroll = () => {
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
   };
 
   const endDrag = () => {
-    isPressed.current = false;
-    hasActivatedDrag.current = false;
     setIsDragging(false);
-    document.body.style.cursor = "";
-    pointerIdRef.current = null;
+    document.body.style.cursor = '';
+    unlockPageScroll();
+    activePointerId.current = null;
+    activePointerType.current = null;
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (pointerIdRef.current === e.pointerId) endDrag();
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+    activePointerId.current = e.pointerId;
+    activePointerType.current = e.pointerType;
+
+    setIsDragging(true);
+    startY.current = e.clientY;
+    startValue.current = value;
+
+    // “swoboda” na desktop: łapiesz i nie gubisz ruchu
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
+    document.body.style.cursor = 'ns-resize';
+    lockPageScrollIfTouch();
+
+    // ważne: dla touch od razu zbijamy natywne przewijanie podczas drag
+    if (e.pointerType === 'touch') e.preventDefault();
   };
 
-  const handlePointerCancel = (e: React.PointerEvent) => {
-    if (pointerIdRef.current === e.pointerId) endDrag();
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    if (activePointerId.current !== e.pointerId) return;
+
+    if (activePointerType.current === 'touch') e.preventDefault();
+    processMove(e.clientY);
   };
 
-  const handleDoubleClick = () => {
-    if (defaultValue !== undefined) onChange(clampAndSnap(defaultValue));
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (activePointerId.current !== e.pointerId) return;
+    endDrag();
   };
+
+  const onPointerCancel = (e: React.PointerEvent) => {
+    if (activePointerId.current !== e.pointerId) return;
+    endDrag();
+  };
+
+  const onDoubleClick = () => {
+    if (defaultValue !== undefined) onChange(clampSnap(defaultValue));
+  };
+
+  // safety cleanup
+  useEffect(() => {
+    return () => {
+      unlockPageScroll();
+      document.body.style.cursor = '';
+    };
+  }, []);
 
   // SVG arc
   const r = size / 2 - 4;
   const dashArray = 2 * Math.PI * r;
-  const dashOffset = dashArray - normalized * (dashArray * 0.75);
+  const dashOffset = dashArray - (normalized * (dashArray * 0.75));
   const strokeWidth = size * 0.1;
 
   return (
     <div className="flex flex-col items-center gap-1 select-none">
       <div
-        ref={knobRef}
         className="relative group"
         style={{
           width: size,
           height: size,
-          cursor: isDragging ? "ns-resize" : "grab",
-          // Key part: allow vertical scrolling unless we are actively dragging
-          touchAction: isDragging ? "none" : "pan-y",
-          userSelect: "none",
+          cursor: 'ns-resize',
+          // nie blokuj scrolla zawsze. blokujemy globalnie tylko podczas drag (jak w starym)
+          touchAction: 'manipulation',
+          userSelect: 'none',
         }}
-        role="slider"
-        aria-label={label ?? "knob"}
-        aria-valuemin={min}
-        aria-valuemax={max}
-        aria-valuenow={value}
-        tabIndex={0}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-        onDoubleClick={handleDoubleClick}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onDoubleClick={onDoubleClick}
         title="Double-click to reset"
       >
-        <svg
-          width={size}
-          height={size}
-          className="transform rotate-90 drop-shadow-sm pointer-events-none"
-        >
+        <svg width={size} height={size} className="transform rotate-90 drop-shadow-sm pointer-events-none">
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -197,16 +188,8 @@ export const Knob: React.FC<KnobProps> = ({
       </div>
 
       <div className="text-center">
-        {label && (
-          <div className="text-[9px] font-bold text-[#7A8476] uppercase tracking-wider">
-            {label}
-          </div>
-        )}
-        <div
-          className={`text-[10px] font-mono font-bold ${
-            isDragging ? "text-[#3F453F]" : "text-[#5F665F]"
-          }`}
-        >
+        {label && <div className="text-[9px] font-bold text-[#7A8476] uppercase tracking-wider">{label}</div>}
+        <div className={`text-[10px] font-mono font-bold ${isDragging ? 'text-[#3F453F]' : 'text-[#5F665F]'}`}>
           {format ? format(value) : value.toFixed(2)}
         </div>
       </div>
