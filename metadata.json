@@ -1,0 +1,5 @@
+{
+  "name": "Ambient Glass Bubble Synth",
+  "description": "An interactive generative art music player. Click to spawn glass bubbles that create ambient drone sounds upon collision. Manipulate physics and audio with abstract controls.",
+  "requestFramePermissions": []
+}
