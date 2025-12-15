@@ -73,24 +73,21 @@ export const Knob: React.FC<KnobProps> = ({
     };
 
     // --- TOUCH EVENTS (Mobile) ---
+    // Note: We rely on the 'touch-none' CSS class to handle scroll locking natively.
+    // We avoid e.preventDefault() here to prevent "passive event listener" errors in the console.
+    
     const handleTouchStart = (e: React.TouchEvent) => {
         setIsDragging(true);
         startY.current = e.touches[0].clientY;
         startValue.current = value;
-        // Lock scroll to prevent page moving while dragging knob
-        document.body.style.overflow = 'hidden'; 
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        // Critical: Prevent browser from trying to scroll or refresh
-        if (e.cancelable) e.preventDefault();
         processMove(e.touches[0].clientY);
     };
 
     const handleTouchEnd = () => {
         setIsDragging(false);
-        // Unlock scroll immediately
-        document.body.style.overflow = '';
     };
 
     const handleDoubleClick = () => {
@@ -108,13 +105,13 @@ export const Knob: React.FC<KnobProps> = ({
     return (
         <div className="flex flex-col items-center gap-1 select-none">
              <div 
-                className="relative cursor-ns-resize group touch-none" // touch-none is critical for mobile
+                className="relative cursor-ns-resize group touch-none"
                 style={{ width: size, height: size }}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                onTouchCancel={handleTouchEnd} // Handle interruption
+                onTouchCancel={handleTouchEnd}
                 onDoubleClick={handleDoubleClick}
                 title="Double-click to reset"
             >
