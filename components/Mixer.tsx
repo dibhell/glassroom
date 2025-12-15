@@ -14,7 +14,7 @@ interface MixerProps {
 export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, onPlayPause, onStop }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const vuCanvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
 
   const handleEQChange = (band: 'low' | 'mid' | 'high', val: number) => {
     // Val is 0-100 from range input, map to -10 to 10 dB
