@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface KnobProps {
     label?: string;
@@ -25,120 +25,158 @@ export const Knob: React.FC<KnobProps> = ({
     color = '#7A8476',
     size = 48
 }) => {
-    // Visual state for active interaction
+    // Internal state only for visual feedback (cursor style, highlighting)
     const [isDragging, setIsDragging] = useState(false);
     
-    // Store drag session data to calculate delta from the initial click point
-    // This prevents accumulation errors and drift
-    const dragRef = useRef<{
-        startY: number;
-        startValue: number;
-    } | null>(null);
+    // Refs to hold mutable values for the event listeners without triggering re-renders
+    const stateRef = useRef({
+        startY: 0,
+        startValue: 0,
+        isDragging: false
+    });
 
-    // --- INTERACTION CONSTANTS ---
-    // How many pixels of vertical movement for the full range?
-    // 128px is a standard "feeling" distance (power of 2, feels musical/natural)
-    const PIXELS_FULL_RANGE = 128; 
+    // --- MATH CONSTANTS ---
+    // Higher = more precision (slower movement). 
+    // 200px feels like a standard hardware knob.
+    const SENSITIVITY = 200; 
 
-    const handlePointerDown = (e: React.PointerEvent) => {
-        // Prevent default browser behaviors (scrolling, text selection)
-        e.preventDefault();
-        e.stopPropagation();
-
-        const target = e.currentTarget as HTMLDivElement;
+    // --- CORE LOGIC ---
+    // Calculates new value based on delta Y
+    const updateValue = (clientY: number, shiftKey: boolean) => {
+        const { startY, startValue } = stateRef.current;
+        const deltaY = startY - clientY; // Up is positive
         
-        // CRITICAL: Capture the pointer so we receive events even if cursor leaves the div
-        // or goes off-screen. This is the modern replacement for global window listeners.
-        target.setPointerCapture(e.pointerId);
-        
-        setIsDragging(true);
-        dragRef.current = {
-            startY: e.clientY,
-            startValue: value
-        };
-    };
-
-    const handlePointerMove = (e: React.PointerEvent) => {
-        if (!dragRef.current) return;
-        
-        e.preventDefault();
-        e.stopPropagation();
-
-        const { startY, startValue } = dragRef.current;
-        
-        // Calculate Delta: Up movement (decreasing Y) should increase value
-        const deltaPixel = startY - e.clientY; 
-        
-        // Calculate value change relative to the full range
-        // Multiplier helps adjust "speed" (SHIFT key could potentially modify PIXELS_FULL_RANGE)
+        // Dynamic range based on Min/Max
         const range = max - min;
-        const deltaValue = (deltaPixel / PIXELS_FULL_RANGE) * range;
         
+        // Calculate raw change (0.0 to 1.0 scale usually)
+        // Shift key slows it down by 5x for fine-tuning
+        const speed = shiftKey ? SENSITIVITY * 5 : SENSITIVITY;
+        
+        const deltaValue = (deltaY / speed) * range;
         let newValue = startValue + deltaValue;
 
-        // 1. Clamp to Min/Max
-        newValue = Math.min(max, Math.max(min, newValue));
+        // Clamp
+        newValue = Math.max(min, Math.min(max, newValue));
 
-        // 2. Snap to Step (if defined)
+        // Step
         if (step > 0) {
             newValue = Math.round(newValue / step) * step;
         }
 
-        // 3. Re-Clamp (to handle float rounding artifacts at edges)
-        newValue = Math.min(max, Math.max(min, newValue));
+        // Precision Clamp (fix JS float errors like 0.300000004)
+        newValue = Math.round(newValue * 10000) / 10000;
 
-        // 4. Update if different
-        // Use a small epsilon for float comparison to avoid unnecessary updates
-        if (Math.abs(newValue - value) > 0.00001) {
+        if (newValue !== value) {
             onChange(newValue);
         }
     };
 
-    const handlePointerUp = (e: React.PointerEvent) => {
+    // --- MOUSE HANDLERS (PC) ---
+    // We attach listeners to WINDOW so you can drag anywhere
+    const onMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent text selection
+        e.stopPropagation();
+
+        setIsDragging(true);
+        stateRef.current = {
+            startY: e.clientY,
+            startValue: value,
+            isDragging: true
+        };
+
+        document.body.style.cursor = 'ns-resize';
+        window.addEventListener('mousemove', onWindowMouseMove);
+        window.addEventListener('mouseup', onWindowMouseUp);
+    };
+
+    const onWindowMouseMove = (e: MouseEvent) => {
+        if (!stateRef.current.isDragging) return;
+        e.preventDefault();
+        updateValue(e.clientY, e.shiftKey);
+    };
+
+    const onWindowMouseUp = () => {
         setIsDragging(false);
-        dragRef.current = null;
+        stateRef.current.isDragging = false;
+        document.body.style.cursor = '';
+        window.removeEventListener('mousemove', onWindowMouseMove);
+        window.removeEventListener('mouseup', onWindowMouseUp);
+    };
+
+    // --- TOUCH HANDLERS (MOBILE) ---
+    const onTouchStart = (e: React.TouchEvent) => {
+        // e.preventDefault(); // Sometimes needed, but can block click events
+        e.stopPropagation();
         
-        const target = e.currentTarget as HTMLDivElement;
-        target.releasePointerCapture(e.pointerId);
+        setIsDragging(true);
+        stateRef.current = {
+            startY: e.touches[0].clientY,
+            startValue: value,
+            isDragging: true
+        };
+
+        // Lock scroll on mobile
+        document.body.style.overflow = 'hidden';
+        
+        // Attach touch listeners to window (safest for "drag out")
+        window.addEventListener('touchmove', onWindowTouchMove, { passive: false });
+        window.addEventListener('touchend', onWindowTouchEnd);
+    };
+
+    const onWindowTouchMove = (e: TouchEvent) => {
+        if (!stateRef.current.isDragging) return;
+        e.preventDefault(); // Crucial to prevent scroll during drag
+        updateValue(e.touches[0].clientY, false);
+    };
+
+    const onWindowTouchEnd = () => {
+        setIsDragging(false);
+        stateRef.current.isDragging = false;
+        document.body.style.overflow = '';
+        window.removeEventListener('touchmove', onWindowTouchMove);
+        window.removeEventListener('touchend', onWindowTouchEnd);
     };
 
     const handleDoubleClick = () => {
         if (defaultValue !== undefined) onChange(defaultValue);
     };
 
-    // --- VISUAL CALCULATIONS ---
-    const normalized = (value - min) / (max - min);
-    // Map 0..1 to -135deg..+135deg (Total 270 degree arc)
-    const rotation = -135 + (normalized * 270);
+    // Cleanup on unmount just in case
+    useEffect(() => {
+        return () => {
+            window.removeEventListener('mousemove', onWindowMouseMove);
+            window.removeEventListener('mouseup', onWindowMouseUp);
+            window.removeEventListener('touchmove', onWindowTouchMove);
+            window.removeEventListener('touchend', onWindowTouchEnd);
+            document.body.style.cursor = '';
+            document.body.style.overflow = '';
+        };
+    }, []);
 
-    // SVG geometry
-    const strokeWidth = size * 0.12;
-    // const radius = (size / 2) - (strokeWidth);
+    // --- VISUALS ---
+    const normalized = (value - min) / (max - min);
+    // 270 degree arc (-135 to +135)
+    const rotation = -135 + (normalized * 270);
     
-    // Reverting to the proven SVG math from previous successful iteration for visuals,
-    // as that wasn't the broken part and looked good.
-    const r = size / 2 - 4;
+    // SVG Math
+    const strokeWidth = size * 0.1;
+    const r = size / 2 - (strokeWidth); 
     const c = 2 * Math.PI * r;
-    const offset = c - normalized * (c * 0.75); // proven offset formula
+    const offset = c - normalized * (c * 0.75); // 0.75 = 270deg / 360deg
 
     return (
-        <div className="flex flex-col items-center gap-2 touch-none select-none">
+        <div className="flex flex-col items-center gap-1 select-none touch-none">
             <div 
-                className="relative cursor-ns-resize group"
-                style={{ 
-                    width: size, 
-                    height: size, 
-                    touchAction: 'none' // CRITICAL for mobile scroll prevention
-                }}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
+                className="relative cursor-ns-resize group touch-none"
+                style={{ width: size, height: size }}
+                onMouseDown={onMouseDown}
+                onTouchStart={onTouchStart}
                 onDoubleClick={handleDoubleClick}
-                title="Drag vertically to adjust"
+                title="Drag up/down | Shift for precision | Double click reset"
             >
-                {/* SVG Dial */}
-                <svg width={size} height={size} className="transform rotate-90 pointer-events-none filter drop-shadow-sm">
+                {/* SVG Ring */}
+                <svg width={size} height={size} className="transform rotate-90 pointer-events-none drop-shadow-sm">
                     {/* Track */}
                     <circle
                         cx={size/2} cy={size/2} r={r}
@@ -146,10 +184,10 @@ export const Knob: React.FC<KnobProps> = ({
                         stroke="#D9DBD6"
                         strokeWidth={strokeWidth}
                         strokeDasharray={c}
-                        strokeDashoffset={c * 0.25} // 25% gap
+                        strokeDashoffset={c * 0.25}
                         strokeLinecap="round"
                     />
-                    {/* Active Value */}
+                    {/* Active */}
                     <circle
                         cx={size/2} cy={size/2} r={r}
                         fill="none"
@@ -159,29 +197,30 @@ export const Knob: React.FC<KnobProps> = ({
                         strokeDashoffset={offset}
                         strokeLinecap="round"
                         className="transition-[stroke-dashoffset] duration-75"
-                        style={{ filter: isDragging ? `drop-shadow(0 0 3px ${color})` : 'none' }}
+                        style={{ opacity: 0.9 }}
                     />
                 </svg>
 
-                {/* Physical Indicator Tick */}
+                {/* Indicator Tick */}
                 <div 
                     className="absolute inset-0 flex items-center justify-center pointer-events-none"
                     style={{ transform: `rotate(${rotation}deg)` }}
                 >
-                    <div className={`absolute -top-[10%] w-1.5 h-2.5 rounded-full transition-colors border-[0.5px] border-black/10 
-                        ${isDragging ? 'bg-white shadow-md' : 'bg-[#F2F2F0] shadow-sm'}`} 
+                    <div 
+                        className={`absolute -top-[5%] w-1 rounded-full transition-all duration-200
+                        ${isDragging ? 'bg-[#2E2F2B] h-3' : 'bg-[#7A8476] h-2.5'}`} 
                     />
                 </div>
             </div>
 
-            {/* Labels */}
-            <div className="flex flex-col items-center pointer-events-none">
+            {/* Label */}
+            <div className="flex flex-col items-center pointer-events-none mt-1">
                 {label && (
-                    <span className="text-[9px] font-bold text-[#7A8476] uppercase tracking-widest mb-0.5">
+                    <span className="text-[9px] font-bold text-[#7A8476] uppercase tracking-wider leading-none mb-0.5 opacity-80">
                         {label}
                     </span>
                 )}
-                <span className={`text-[10px] font-mono font-bold tabular-nums leading-none 
+                <span className={`text-[10px] font-mono font-bold leading-none transition-colors
                     ${isDragging ? 'text-[#2E2F2B]' : 'text-[#5F665F]'}`}>
                     {format ? format(value) : value.toFixed(2)}
                 </span>
