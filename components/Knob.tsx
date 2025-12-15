@@ -28,28 +28,15 @@ export const Knob: React.FC<KnobProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const startY = useRef<number>(0);
     const startValue = useRef<number>(0);
-    const knobRef = useRef<HTMLDivElement>(null);
     
     // Calculate rotation (0 to 270 degrees)
     const range = max - min;
     const normalized = Math.min(1, Math.max(0, (value - min) / range));
     const rotation = normalized * 270 - 135; // -135 to +135
 
-    // --- POINTER EVENTS (Unified Mouse & Touch) ---
-    const handlePointerDown = (e: React.PointerEvent) => {
-        setIsDragging(true);
-        startY.current = e.clientY;
-        startValue.current = value;
-        
-        // Capture pointer to track movement even outside the element
-        e.currentTarget.setPointerCapture(e.pointerId);
-    };
-
-    const handlePointerMove = (e: React.PointerEvent) => {
-        if (!isDragging) return;
-        e.preventDefault();
-        
-        const deltaY = startY.current - e.clientY; // Up is positive
+    // --- COMMON LOGIC ---
+    const processMove = (clientY: number) => {
+        const deltaY = startY.current - clientY; // Up is positive
         const sensitivity = range / 200; // 200px for full range
         
         let newValue = startValue.current + (deltaY * sensitivity);
@@ -61,9 +48,49 @@ export const Knob: React.FC<KnobProps> = ({
         onChange(newValue);
     };
 
-    const handlePointerUp = (e: React.PointerEvent) => {
+    // --- MOUSE EVENTS ---
+    const handleMouseMove = (e: MouseEvent) => {
+        e.preventDefault();
+        processMove(e.clientY);
+    };
+
+    const handleMouseUp = () => {
         setIsDragging(false);
-        e.currentTarget.releasePointerCapture(e.pointerId);
+        document.body.style.cursor = '';
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (e.button !== 0) return; // Left click only
+        
+        setIsDragging(true);
+        startY.current = e.clientY;
+        startValue.current = value;
+        document.body.style.cursor = 'ns-resize';
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    // --- TOUCH EVENTS (Mobile) ---
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setIsDragging(true);
+        startY.current = e.touches[0].clientY;
+        startValue.current = value;
+        // Lock scroll to prevent page moving while dragging knob
+        document.body.style.overflow = 'hidden'; 
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        // Critical: Prevent browser from trying to scroll or refresh
+        if (e.cancelable) e.preventDefault();
+        processMove(e.touches[0].clientY);
+    };
+
+    const handleTouchEnd = () => {
+        setIsDragging(false);
+        // Unlock scroll immediately
+        document.body.style.overflow = '';
     };
 
     const handleDoubleClick = () => {
@@ -81,13 +108,13 @@ export const Knob: React.FC<KnobProps> = ({
     return (
         <div className="flex flex-col items-center gap-1 select-none">
              <div 
-                ref={knobRef}
-                className="relative cursor-ns-resize group touch-none" // touch-none prevents browser scroll/zoom on this element
+                className="relative cursor-ns-resize group touch-none" // touch-none is critical for mobile
                 style={{ width: size, height: size }}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
+                onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd} // Handle interruption
                 onDoubleClick={handleDoubleClick}
                 title="Double-click to reset"
             >
