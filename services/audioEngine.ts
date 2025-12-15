@@ -273,17 +273,26 @@ class AudioEngine {
     const octave = sizeFactor > 0.8 ? 0.5 : sizeFactor < 0.3 ? 2 : 1;
     let finalFreq = safeBaseFreq * interval * octave;
 
-    if (dopplerIntensity > 0) {
+    // Safety checks for Physics anomalies
+    if (dopplerIntensity > 0 && Number.isFinite(velocityZ)) {
        const dopplerCents = velocityZ * -100 * dopplerIntensity; 
        const multiplier = Math.pow(2, dopplerCents / 1200);
        finalFreq *= multiplier;
     }
     
+    // Ensure Frequency is Finite and within audible range
+    if (!Number.isFinite(finalFreq) || Number.isNaN(finalFreq)) {
+        finalFreq = 440;
+    }
     finalFreq = Math.max(40, Math.min(12000, finalFreq));
 
     // --- GAIN STAGING ---
     const baseVol = 0.25 * safeVolume; 
     
+    // Use an Epsilon to prevent exponentialRampToValueAtTime errors when starting from 0
+    const EPSILON = 0.001; 
+    const peakVol = Math.max(EPSILON, baseVol);
+
     const cleanup = () => {
         this.activeVoices = Math.max(0, this.activeVoices - 1);
         setTimeout(() => {
@@ -300,10 +309,16 @@ class AudioEngine {
         source.buffer = this.customBuffer;
         let rate = finalFreq / 440; 
         if (isReverse) source.buffer = this.createReverseBuffer(this.customBuffer);
+        
+        // Safety check for rate
+        if (!Number.isFinite(rate)) rate = 1.0;
+        
         source.playbackRate.setValueAtTime(Math.max(0.1, Math.min(rate, 4.0)), now);
         
-        sourceGain.gain.setValueAtTime(baseVol, now);
-        sourceGain.gain.exponentialRampToValueAtTime(0.0001, now + (this.customBuffer.duration / rate));
+        // Start envelope
+        sourceGain.gain.setValueAtTime(peakVol, now);
+        // Exponential fade out
+        sourceGain.gain.exponentialRampToValueAtTime(EPSILON, now + (this.customBuffer.duration / rate));
         
         source.connect(depthFilter);
         source.onended = cleanup;
@@ -332,9 +347,12 @@ class AudioEngine {
         const attack = 0.005;
         const decay = 1.5; 
 
-        sourceGain.gain.setValueAtTime(0, now);
-        sourceGain.gain.linearRampToValueAtTime(baseVol, now + attack);
-        sourceGain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+        // Start at silence (EPSILON)
+        sourceGain.gain.setValueAtTime(EPSILON, now);
+        // Linear ramp to peak
+        sourceGain.gain.linearRampToValueAtTime(peakVol, now + attack);
+        // Exponential ramp back to silence (safe because start value is peakVol >= EPSILON)
+        sourceGain.gain.exponentialRampToValueAtTime(EPSILON, now + decay);
 
         osc.start(now);
         osc.stop(now + decay + 0.1);
