@@ -29,6 +29,10 @@ export const Knob: React.FC<KnobProps> = ({
     const startY = useRef<number>(0);
     const startValue = useRef<number>(0);
     
+    // Stable ref for onChange to handle closures correctly in window listeners
+    const onChangeRef = useRef(onChange);
+    useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+    
     // Calculate rotation (0 to 270 degrees)
     const range = max - min;
     const normalized = Math.min(1, Math.max(0, (value - min) / range));
@@ -45,10 +49,11 @@ export const Knob: React.FC<KnobProps> = ({
         newValue = Math.round(newValue / step) * step;
         newValue = Math.max(min, Math.min(max, newValue));
         
-        onChange(newValue);
+        onChangeRef.current(newValue);
     };
 
-    // --- MOUSE EVENTS ---
+    // --- MOUSE EVENTS (Desktop) ---
+    // We use window listeners to allow dragging outside the knob element
     const handleMouseDown = (e: React.MouseEvent) => {
         e.preventDefault(); // Prevent text selection
         setIsDragging(true);
@@ -72,29 +77,35 @@ export const Knob: React.FC<KnobProps> = ({
         window.removeEventListener('mouseup', handleWindowMouseUp);
     };
 
-    // --- TOUCH EVENTS ---
-    // Using touch-action: none in CSS is preferred over preventing default in JS for modern React
+    // --- TOUCH EVENTS (Mobile) ---
+    // Strategy: Lock body scroll to prevent page movement, use standard touch events.
+    // We DO NOT call preventDefault() to avoid "passive event listener" errors.
+    
     const handleTouchStart = (e: React.TouchEvent) => {
         setIsDragging(true);
         startY.current = e.touches[0].clientY;
         startValue.current = value;
+        // Lock scroll globally
+        document.body.style.overflow = 'hidden';
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        // e.preventDefault() is often problematic with passive listeners.
-        // We rely on touch-action: none css property to disable scrolling.
+        // No preventDefault needed because overflow is hidden
         processMove(e.touches[0].clientY);
     };
 
     const handleTouchEnd = () => {
         setIsDragging(false);
+        // Unlock scroll
+        document.body.style.overflow = '';
     };
 
-    // Cleanup on unmount just in case
+    // Cleanup on unmount
     useEffect(() => {
         return () => {
             window.removeEventListener('mousemove', handleWindowMouseMove);
             window.removeEventListener('mouseup', handleWindowMouseUp);
+            document.body.style.overflow = '';
         };
     }, []);
 
@@ -117,7 +128,7 @@ export const Knob: React.FC<KnobProps> = ({
                 style={{ 
                     width: size, 
                     height: size,
-                    touchAction: 'none' // CRITICAL: This prevents scroll on mobile, enabling native-like knob control
+                    touchAction: 'none' // Redundant with overflow:hidden but good practice
                 }}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleTouchStart}
