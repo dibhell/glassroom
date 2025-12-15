@@ -147,9 +147,9 @@ const App: React.FC = () => {
 
   return (
     // Main BG: C1 Snow White
-    <div className="min-h-screen bg-[#F2F2F0] text-[#2E2F2B] p-4 md:p-8 flex flex-col items-center pb-20 font-sans selection:bg-[#7A8476] selection:text-white">
+    <div className="min-h-screen bg-[#F2F2F0] text-[#2E2F2B] p-2 md:p-8 flex flex-col items-center pb-20 font-sans selection:bg-[#7A8476] selection:text-white">
       
-      <header className="mb-8 text-center">
+      <header className="mb-8 text-center mt-4 md:mt-0">
         {/* Title: C5 Dark Spruce */}
         <h1 className="text-3xl md:text-5xl font-light tracking-[0.2em] text-[#3F453F] lowercase">
           icicles chamber
@@ -160,7 +160,7 @@ const App: React.FC = () => {
 
       <div className="w-full max-w-5xl relative flex-1 flex flex-col">
         {/* Visualizer Box */}
-        <div className="relative z-10 p-2 rounded-xl bg-[#D9DBD6] shadow-md mb-12">
+        <div className="relative z-10 p-2 rounded-xl bg-[#D9DBD6] shadow-md mb-8 md:mb-12">
            <Visualizer 
               ref={visualizerRef}
               isPlaying={isPlaying} 
@@ -170,10 +170,10 @@ const App: React.FC = () => {
         </div>
 
         {/* KNOBS SECTION - Grouped */}
-        <div className="flex flex-col lg:flex-row justify-center gap-6 mb-12">
+        <div className="flex flex-col xl:flex-row justify-center gap-6 mb-12">
             
             {/* GROUP 1: CONTROL (Physics) */}
-            <div className="relative flex flex-wrap justify-center gap-4 px-6 py-8 bg-[#F2F2F0] rounded-3xl border border-[#B9BCB7] shadow-sm">
+            <div className="relative flex flex-wrap justify-center gap-4 px-4 py-8 bg-[#F2F2F0] rounded-3xl border border-[#B9BCB7] shadow-sm w-full xl:w-auto">
                 <GroupLabel text="Physics" />
                 <KnobWithIcon value={physicsKnobs.tempo} onChange={(v: number) => setPhysicsKnobs(p => ({...p, tempo: v}))} icon={Activity} label="Tempo" defaultValue={0.5} />
                 <KnobWithIcon value={physicsKnobs.gravity} onChange={(v: number) => setPhysicsKnobs(p => ({...p, gravity: v}))} icon={MoveDown} label="Gravity" defaultValue={0.0} />
@@ -184,7 +184,7 @@ const App: React.FC = () => {
             </div>
 
             {/* GROUP 2: CREATIVE (Audio + Magneto) */}
-            <div className="relative flex flex-wrap justify-center gap-4 px-6 py-8 bg-[#F2F2F0] rounded-3xl border border-[#B9BCB7] shadow-sm">
+            <div className="relative flex flex-wrap justify-center gap-4 px-4 py-8 bg-[#F2F2F0] rounded-3xl border border-[#B9BCB7] shadow-sm w-full xl:w-auto">
                 <GroupLabel text="Creative" />
                 <KnobWithIcon value={physicsKnobs.tuning} onChange={(v: number) => setPhysicsKnobs(p => ({...p, tuning: v}))} icon={AudioLines} label="Tuning" defaultValue={0.5} />
                 <KnobWithIcon value={physicsKnobs.reverb} onChange={(v: number) => setPhysicsKnobs(p => ({...p, reverb: v}))} icon={Waves} label="Reverb" defaultValue={0.3} />
@@ -195,7 +195,7 @@ const App: React.FC = () => {
             </div>
 
             {/* GROUP 3: DESTRUCTIVE (Chaos) */}
-            <div className="relative flex flex-wrap justify-center gap-4 px-6 py-8 bg-[#F2F2F0] rounded-3xl border border-[#B9BCB7] shadow-sm">
+            <div className="relative flex flex-wrap justify-center gap-4 px-4 py-8 bg-[#F2F2F0] rounded-3xl border border-[#B9BCB7] shadow-sm w-full xl:w-auto">
                 <GroupLabel text="Destructive" />
                 <KnobWithIcon value={physicsKnobs.budding} onChange={(v: number) => setPhysicsKnobs(p => ({...p, budding: v}))} icon={Sprout} label="Budding" defaultValue={0.0} />
                 <KnobWithIcon value={physicsKnobs.cannibalism} onChange={(v: number) => setPhysicsKnobs(p => ({...p, cannibalism: v}))} icon={Merge} label="Merge" defaultValue={0.0} />
