@@ -28,56 +28,29 @@ export const Knob: React.FC<KnobProps> = ({
     const [isDragging, setIsDragging] = useState(false);
     const startY = useRef<number>(0);
     const startValue = useRef<number>(0);
+    const knobRef = useRef<HTMLDivElement>(null);
     
     // Calculate rotation (0 to 270 degrees)
     const range = max - min;
     const normalized = Math.min(1, Math.max(0, (value - min) / range));
     const rotation = normalized * 270 - 135; // -135 to +135
 
-    // --- MOUSE EVENTS ---
-    const handleMouseDown = (e: React.MouseEvent) => {
+    // --- POINTER EVENTS (Unified Mouse & Touch) ---
+    const handlePointerDown = (e: React.PointerEvent) => {
         setIsDragging(true);
         startY.current = e.clientY;
         startValue.current = value;
-        document.body.style.cursor = 'ns-resize';
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
+        
+        // Capture pointer to track movement even outside the element
+        e.currentTarget.setPointerCapture(e.pointerId);
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: React.PointerEvent) => {
+        if (!isDragging) return;
         e.preventDefault();
-        processMove(e.clientY);
-    };
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
-        document.body.style.cursor = '';
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    // --- TOUCH EVENTS (Mobile) ---
-    const handleTouchStart = (e: React.TouchEvent) => {
-        setIsDragging(true);
-        startY.current = e.touches[0].clientY;
-        startValue.current = value;
-        // Prevent scrolling while adjusting knob
-        document.body.style.overflow = 'hidden'; 
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        processMove(e.touches[0].clientY);
-    };
-
-    const handleTouchEnd = () => {
-        setIsDragging(false);
-        document.body.style.overflow = '';
-    };
-
-    // --- COMMON LOGIC ---
-    const processMove = (clientY: number) => {
-        const deltaY = startY.current - clientY; // Up is positive
-        const sensitivity = range / 200; // 200px for full range (Adjusted sensitivity)
+        
+        const deltaY = startY.current - e.clientY; // Up is positive
+        const sensitivity = range / 200; // 200px for full range
         
         let newValue = startValue.current + (deltaY * sensitivity);
         
@@ -86,6 +59,11 @@ export const Knob: React.FC<KnobProps> = ({
         newValue = Math.max(min, Math.min(max, newValue));
         
         onChange(newValue);
+    };
+
+    const handlePointerUp = (e: React.PointerEvent) => {
+        setIsDragging(false);
+        e.currentTarget.releasePointerCapture(e.pointerId);
     };
 
     const handleDoubleClick = () => {
@@ -101,18 +79,19 @@ export const Knob: React.FC<KnobProps> = ({
     const strokeWidth = size * 0.1;
 
     return (
-        <div className="flex flex-col items-center gap-1 select-none touch-none">
+        <div className="flex flex-col items-center gap-1 select-none">
              <div 
-                className="relative cursor-ns-resize group"
+                ref={knobRef}
+                className="relative cursor-ns-resize group touch-none" // touch-none prevents browser scroll/zoom on this element
                 style={{ width: size, height: size }}
-                onMouseDown={handleMouseDown}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
                 onDoubleClick={handleDoubleClick}
                 title="Double-click to reset"
             >
-                <svg width={size} height={size} className="transform rotate-90 drop-shadow-sm">
+                <svg width={size} height={size} className="transform rotate-90 drop-shadow-sm pointer-events-none">
                     {/* Background Track */}
                     <circle 
                         cx={size/2} cy={size/2} r={r} 
