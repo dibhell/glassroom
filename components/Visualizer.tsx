@@ -26,7 +26,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(({ isPla
   const audioSettingsRef = useRef<AudioSettings>(audioSettings);
   const bubblesRef = useRef<Bubble[]>([]);
   const particlesRef = useRef<Particle[]>([]);
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | null>(null);
   const isPlayingRef = useRef<boolean>(isPlaying);
   
   // Matrix Log Buffer
