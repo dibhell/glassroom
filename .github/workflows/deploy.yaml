@@ -31,14 +31,12 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Important for routing on GitHub Pages if not using a custom domain
-          # If your repo is at https://user.github.io/repo/, set this to /repo/
           PUBLIC_URL: ./ 
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./build # Or ./dist depending on your bundler (Vite uses dist, CRA uses build)
+          path: ./dist
 
   deploy:
     environment:
