@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Knob } from './components/Knob';
 import { Mixer } from './components/Mixer';
 import { Visualizer, VisualizerHandle } from './components/Visualizer';
-import { AudioSettings, PhysicsSettings } from './types';
+import { AudioSettings, PhysicsSettings, MusicSettings } from './types';
 import { audioService } from './services/audioEngine';
 import iciLogo from './ici.png';
+import { SCALES, DEFAULT_SCALE_ID } from './src/music/scales';
+import { NOTE_NAMES, pitchClassToNoteName } from './src/music/notes';
 import {
   Waves,
   Activity,
@@ -25,6 +27,14 @@ import {
 } from 'lucide-react';
 
 const VERSION = 'v1.2.2';
+const SCALE_COUNT = SCALES.length;
+const DEFAULT_SCALE_INDEX = Math.max(0, SCALES.findIndex((scale) => scale.id === DEFAULT_SCALE_ID));
+const SCALE_STEP = SCALE_COUNT > 1 ? 1 / (SCALE_COUNT - 1) : 1;
+const DEFAULT_SCALE_VALUE = SCALE_COUNT > 1 ? DEFAULT_SCALE_INDEX / (SCALE_COUNT - 1) : 0;
+
+const clampScaleIndex = (index: number) => Math.max(0, Math.min(SCALE_COUNT - 1, index));
+const scaleValueFromIndex = (index: number) => (SCALE_COUNT > 1 ? index / (SCALE_COUNT - 1) : 0);
+const scaleIndexFromValue = (value: number) => clampScaleIndex(Math.round(value * (SCALE_COUNT - 1)));
 
 type IconType = React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
@@ -34,24 +44,49 @@ type KnobWithIconProps = {
   icon: IconType;
   label: string;
   defaultValue?: number;
+  step?: number;
+  onIconClick?: () => void;
+  children?: React.ReactNode;
 };
 
-const KnobWithIcon: React.FC<KnobWithIconProps> = ({ value, onChange, icon: Icon, label, defaultValue = 0.0 }) => (
+const KnobWithIcon: React.FC<KnobWithIconProps> = ({
+  value,
+  onChange,
+  icon: Icon,
+  label,
+  defaultValue = 0.0,
+  step = 0.01,
+  onIconClick,
+  children,
+}) => (
   <div className="flex flex-col items-center gap-2 group relative w-20" title={label}>
     <Knob
       value={value}
       onChange={onChange}
       min={0}
       max={1}
-      step={0.01}
+      step={step}
       defaultValue={defaultValue}
       size={46}
       color="#7A8476"
       format={(v) => v.toFixed(2)}
     />
-    <div className="text-[#5F665F] group-hover:text-[#3F453F] transition-colors flex flex-col items-center gap-1 mt-1">
-      <Icon size={16} strokeWidth={1.5} />
-    </div>
+    {onIconClick ? (
+      <button
+        type="button"
+        onClick={onIconClick}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="text-[#5F665F] group-hover:text-[#3F453F] transition-colors flex flex-col items-center gap-1 mt-1"
+        aria-label={label}
+      >
+        <Icon size={16} strokeWidth={1.5} />
+      </button>
+    ) : (
+      <div className="text-[#5F665F] group-hover:text-[#3F453F] transition-colors flex flex-col items-center gap-1 mt-1">
+        <Icon size={16} strokeWidth={1.5} />
+      </div>
+    )}
+    {children}
   </div>
 );
 
@@ -92,10 +127,22 @@ const App: React.FC = () => {
     pingPong: 0.0,
     weakness: 0.0,
     magneto: 0.5,
-    toneMatch: 0.5,
     fragmentation: 0.0,
     freeze: 0.0,
   });
+
+  const [musicSettings, setMusicSettings] = useState<MusicSettings>({
+    root: 0,
+    scaleId: SCALES[DEFAULT_SCALE_INDEX]?.id ?? DEFAULT_SCALE_ID,
+    scaleIndex: DEFAULT_SCALE_VALUE,
+    quantizeEnabled: true,
+    noImmediateRepeat: true,
+    avoidLeadingTone: false,
+    noThirds: false,
+  });
+
+  const [isMusicOpen, setIsMusicOpen] = useState(false);
+  const musicPanelRef = useRef<HTMLDivElement>(null);
 
   // Derived physics for engine (memoized to avoid object churn each render)
   const physicsSettings: PhysicsSettings = useMemo(
@@ -111,7 +158,6 @@ const App: React.FC = () => {
       pingPong: physicsKnobs.pingPong,
       weakness: physicsKnobs.weakness,
       magneto: physicsKnobs.magneto,
-      toneMatch: physicsKnobs.toneMatch,
       fragmentation: physicsKnobs.fragmentation,
       freeze: physicsKnobs.freeze,
     }),
@@ -170,6 +216,20 @@ const App: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMusicOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (!musicPanelRef.current) return;
+      if (!musicPanelRef.current.contains(e.target as Node)) {
+        setIsMusicOpen(false);
+      }
+    };
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [isMusicOpen]);
+
   const handleStart = useCallback(() => {
     setIsPlaying((prev) => {
       const next = !prev;
@@ -192,6 +252,41 @@ const App: React.FC = () => {
     visualizerRef.current?.reset();
   }, []);
 
+  const selectedScale = useMemo(
+    () => SCALES.find((scale) => scale.id === musicSettings.scaleId) ?? SCALES[DEFAULT_SCALE_INDEX],
+    [musicSettings.scaleId]
+  );
+
+  const scalePreview = useMemo(() => {
+    const rootName = pitchClassToNoteName(musicSettings.root);
+    const intervals = selectedScale.intervals.join(' ');
+    const notes = selectedScale.intervals.map((i) => pitchClassToNoteName(musicSettings.root + i)).join(' ');
+    return `Scale: ${rootName} ${selectedScale.label} | intervals: ${intervals} | notes: ${notes}`;
+  }, [musicSettings.root, selectedScale]);
+
+  const setScaleByIndex = useCallback((index: number) => {
+    const clamped = clampScaleIndex(index);
+    const scale = SCALES[clamped] ?? SCALES[DEFAULT_SCALE_INDEX];
+    setMusicSettings((prev) => ({
+      ...prev,
+      scaleId: scale?.id ?? DEFAULT_SCALE_ID,
+      scaleIndex: scaleValueFromIndex(clamped),
+    }));
+  }, []);
+
+  const setScaleById = useCallback((scaleId: string) => {
+    const index = SCALES.findIndex((scale) => scale.id === scaleId);
+    setScaleByIndex(index >= 0 ? index : DEFAULT_SCALE_INDEX);
+  }, [setScaleByIndex]);
+
+  const handleMusicKnobChange = useCallback((value: number) => {
+    setScaleByIndex(scaleIndexFromValue(value));
+  }, [setScaleByIndex]);
+
+  const toggleMusicPanel = useCallback(() => {
+    setIsMusicOpen((prev) => !prev);
+  }, []);
+
   // helpers: reduce inline noise
   const setKnob = useCallback(<K extends keyof typeof physicsKnobs>(key: K, v: number) => {
     setPhysicsKnobs((p) => ({ ...p, [key]: v }));
@@ -206,7 +301,13 @@ const App: React.FC = () => {
 
       <div className="w-full max-w-5xl relative flex-1 flex flex-col">
         <div className="relative z-10 p-2 rounded-xl bg-[#D9DBD6] shadow-md mb-8 md:mb-12">
-          <Visualizer ref={visualizerRef} isPlaying={isPlaying} physics={physicsSettings} audioSettings={engineAudioSettings} />
+          <Visualizer
+            ref={visualizerRef}
+            isPlaying={isPlaying}
+            physics={physicsSettings}
+            audioSettings={engineAudioSettings}
+            musicSettings={musicSettings}
+          />
         </div>
 
         <div className="flex flex-col xl:flex-row justify-center gap-6 mb-12">
@@ -227,7 +328,100 @@ const App: React.FC = () => {
             <KnobWithIcon value={physicsKnobs.pingPong} onChange={(v) => setKnob('pingPong', v)} icon={GalleryHorizontalEnd} label="Delay" defaultValue={0.0} />
             <KnobWithIcon value={physicsKnobs.doppler} onChange={(v) => setKnob('doppler', v)} icon={Radar} label="Doppler" defaultValue={0.5} />
             <KnobWithIcon value={physicsKnobs.magneto} onChange={(v) => setKnob('magneto', v)} icon={Magnet} label="Magneto" defaultValue={0.5} />
-            <KnobWithIcon value={physicsKnobs.toneMatch} onChange={(v) => setKnob('toneMatch', v)} icon={Music} label="Tone" defaultValue={0.5} />
+            <KnobWithIcon
+              value={musicSettings.scaleIndex}
+              onChange={handleMusicKnobChange}
+              icon={Music}
+              label="Music"
+              defaultValue={DEFAULT_SCALE_VALUE}
+              step={SCALE_STEP}
+              onIconClick={toggleMusicPanel}
+            >
+              {isMusicOpen && (
+                <div
+                  ref={musicPanelRef}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="absolute left-1/2 top-full mt-3 w-64 -translate-x-1/2 rounded-xl border border-[#B9BCB7] bg-[#F2F2F0] p-3 shadow-xl z-30 text-[#2E2F2B]"
+                >
+                  <div className="flex items-center justify-between text-[9px] uppercase tracking-widest text-[#7A8476]">
+                    <span>Root</span>
+                    <select
+                      value={musicSettings.root}
+                      onChange={(e) => setMusicSettings((prev) => ({ ...prev, root: parseInt(e.target.value, 10) }))}
+                      className="bg-[#E7E8E5] border border-[#B9BCB7] text-[10px] px-2 py-1 rounded-sm"
+                    >
+                      {NOTE_NAMES.map((note, index) => (
+                        <option key={note} value={index}>
+                          {note}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="mt-3">
+                    <div className="text-[9px] uppercase tracking-widest text-[#7A8476] mb-1">Scale</div>
+                    <div className="max-h-32 overflow-y-auto rounded-md border border-[#B9BCB7] bg-[#E7E8E5]">
+                      {SCALES.map((scale) => {
+                        const isActive = scale.id === musicSettings.scaleId;
+                        const tagText = scale.tags?.slice(0, 3).join(' ');
+                        return (
+                          <button
+                            key={scale.id}
+                            type="button"
+                            onClick={() => {
+                              setScaleById(scale.id);
+                              setIsMusicOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-2 py-1 text-left text-[10px] border-b border-[#D9DBD6] last:border-b-0 ${
+                              isActive ? 'bg-[#D9DBD6] text-[#2E2F2B]' : 'hover:bg-[#D9DBD6] text-[#5F665F]'
+                            }`}
+                          >
+                            <span>{scale.label}</span>
+                            {tagText && (
+                              <span className="text-[8px] uppercase tracking-wider text-[#7A8476]">{tagText}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[9px] uppercase tracking-widest text-[#5F665F]">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={musicSettings.avoidLeadingTone}
+                        onChange={(e) => setMusicSettings((prev) => ({ ...prev, avoidLeadingTone: e.target.checked }))}
+                        className="accent-[#7A8476]"
+                      />
+                      Avoid Leading Tone
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={musicSettings.noImmediateRepeat}
+                        onChange={(e) => setMusicSettings((prev) => ({ ...prev, noImmediateRepeat: e.target.checked }))}
+                        className="accent-[#7A8476]"
+                      />
+                      No Immediate Repeat
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={musicSettings.noThirds}
+                        onChange={(e) => setMusicSettings((prev) => ({ ...prev, noThirds: e.target.checked }))}
+                        className="accent-[#7A8476]"
+                      />
+                      No 3rd Filter
+                    </label>
+                  </div>
+
+                  <div className="mt-3 text-[9px] font-mono text-[#5F665F] leading-snug">
+                    {scalePreview}
+                  </div>
+                </div>
+              )}
+            </KnobWithIcon>
           </div>
 
           <div className="relative flex flex-wrap justify-center gap-4 px-4 py-8 bg-[#F2F2F0] rounded-3xl border border-[#B9BCB7] shadow-sm w-full xl:w-auto">

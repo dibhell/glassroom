@@ -1,12 +1,15 @@
 import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { Bubble, PhysicsSettings, AudioSettings, Particle } from '../types';
+import { Bubble, PhysicsSettings, AudioSettings, Particle, MusicSettings } from '../types';
 import { audioService } from '../services/audioEngine';
 import { v4 as uuidv4 } from 'uuid';
+import { getScaleById } from '../src/music/scales';
+import { pitchClassToNoteName } from '../src/music/notes';
 
 interface VisualizerProps {
   isPlaying: boolean;
   physics: PhysicsSettings;
   audioSettings: AudioSettings;
+  musicSettings: MusicSettings;
 }
 
 export interface VisualizerHandle {
@@ -37,12 +40,13 @@ type BubbleExt = Bubble & {
 };
 
 export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
-  ({ isPlaying, physics, audioSettings }, ref) => {
+  ({ isPlaying, physics, audioSettings, musicSettings }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const physicsRef = useRef<PhysicsSettings>(physics);
     const audioSettingsRef = useRef<AudioSettings>(audioSettings);
+    const musicSettingsRef = useRef<MusicSettings>(musicSettings);
     const bubblesRef = useRef<BubbleExt[]>([]);
     const particlesRef = useRef<Particle[]>([]);
     const requestRef = useRef<number | null>(null);
@@ -58,6 +62,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
     useEffect(() => { physicsRef.current = physics; }, [physics]);
     useEffect(() => { audioSettingsRef.current = audioSettings; }, [audioSettings]);
     useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+    useEffect(() => { musicSettingsRef.current = musicSettings; }, [musicSettings]);
 
     useImperativeHandle(ref, () => ({
       reset: () => {
@@ -174,7 +179,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         audio.baseFrequency,
         pan, depth, b.vz,
         phys.doppler, isReverse, finalVol,
-        phys.toneMatch
+        musicSettingsRef.current
       );
 
       if (Math.random() > 0.85) {
@@ -216,11 +221,12 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       const phys = physicsRef.current;
       const audio = audioSettingsRef.current;
 
-      let scaleName = 'CHROMATIC';
-      if (phys.toneMatch > 0.8) scaleName = 'MAJ_PENTA';
-      else if (phys.toneMatch > 0.6) scaleName = 'MIN_PENTA';
-      else if (phys.toneMatch > 0.4) scaleName = 'DORIAN_MODE';
-      else if (phys.toneMatch > 0.2) scaleName = 'LYDIAN_MODE';
+      const music = musicSettingsRef.current;
+      const scale = getScaleById(music.scaleId);
+      const rootName = pitchClassToNoteName(music.root);
+      let scaleLabel = `${rootName} ${scale.label.toUpperCase()}`;
+      if (music.noThirds || scale.tags?.includes('no3rd')) scaleLabel += ' NO-3RD';
+      if (scale.tags?.includes('drone')) scaleLabel += ' DRONE';
 
       const params = [
         `// CORE_PHYSICS`,
@@ -239,7 +245,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         `ENTROPY   : ${phys.fragmentation.toFixed(3)}`,
         `// AUDIO_DSP`,
         `FREQ_OSC  : ${Math.round(audio.baseFrequency)}Hz`,
-        `SCALE_MODE: ${scaleName}`,
+        `SCALE_MODE: ${scaleLabel}`,
         `VERB_MIX  : ${audio.reverbWet.toFixed(2)}`,
         `ECHO_FDBK : ${phys.pingPong.toFixed(2)}`,
         `REV_PROB  : ${phys.reverseChance.toFixed(2)}`,

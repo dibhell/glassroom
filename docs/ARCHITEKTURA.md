@@ -7,15 +7,17 @@
   i wyzwala dzwiek przy kolizjach.
 - `services/audioEngine.ts` buduje graf Web Audio (synteza lub sample, poglos,
   ping-pong delay, EQ, limiter, analyser).
+- `src/music/scales.ts` i `src/music/quantize.ts` trzymaja definicje skal
+  i logike mapowania MIDI do skali.
 
 ## Warstwy UI
 - `components/Mixer.tsx` to transport, glosnosc, EQ i VU meter.
 - `components/Knob.tsx` to pokretlo z obsluga myszy i dotyku.
-- `types.ts` opisuje kontrakty danych (AudioSettings, PhysicsSettings).
+- `types.ts` opisuje kontrakty danych (AudioSettings, PhysicsSettings, MusicSettings).
 
 ## Dzwiek
 - Dwa tryby: SYNTH (oscylator) i SAMPLE (wczytany plik).
-- Skala dzwiekowa zalezy od parametru Tone.
+- Skala dzwiekowa zalezy od `MusicSettings` (root, skala, filtry).
 - Panorama i filtracja zalezna od pozycji obiektu w scenie.
 
 ## Render

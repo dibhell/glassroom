@@ -1,4 +1,8 @@
-import { AudioSettings, SoundType } from '../types';
+import { AudioSettings, MusicSettings, SoundType } from '../types';
+import { getScaleById } from '../src/music/scales';
+import type { ScaleDef } from '../src/music/scales';
+import { freqToMidi, midiToFreq, snapMidiToPitchClass } from '../src/music/notes';
+import { quantizeMidiToScale } from '../src/music/quantize';
 
 class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -30,25 +34,10 @@ class AudioEngine {
   private activeVoices: number = 0;
   private readonly MAX_VOICES: number = 40; 
 
-  // --- SCALES & MODES ---
-  // Just Intonation approximations for smoother beating
-
-  // 1. Major Pentatonic (Bright, Airy): 1, 2, 3, 5, 6
-  // Ratios: 1, 9/8, 5/4, 3/2, 5/3
-  private majorPentatonic = [1, 1.125, 1.25, 1.5, 1.667]; 
-
-  // 2. Minor Pentatonic (Deep, Ambient): 1, b3, 4, 5, b7
-  // Ratios: 1, 6/5, 4/3, 3/2, 9/5
-  private minorPentatonic = [1, 1.2, 1.333, 1.5, 1.8];
-
-  // 3. Dorian Mode (Mysterious, Folk): 1, 2, b3, 4, 5, 6, b7
-  private dorianMode = [1, 1.125, 1.2, 1.333, 1.5, 1.667, 1.8];
-
-  // 4. Lydian Mode (Dreamy, Sci-Fi): 1, 2, 3, #4, 5, 6, 7
-  private lydianMode = [1, 1.125, 1.25, 1.414, 1.5, 1.667, 1.875];
-
-  // 5. Chromatic / Microtonal (Chaos)
-  private chromaticScale = [1, 1.059, 1.122, 1.189, 1.259, 1.334, 1.414, 1.498, 1.587, 1.681, 1.781, 1.887];
+  private lastMidi: number | null = null;
+  private dronePool: number[] | null = null;
+  private droneScaleId: string | null = null;
+  private droneTriggerCount: number = 0;
 
   public init() {
     if (this.ctx) return;
@@ -170,6 +159,47 @@ class AudioEngine {
     this.reverbNode.buffer = impulse;
   }
 
+  private buildDronePool(intervals: number[]): number[] {
+    const unique = Array.from(new Set(intervals)).sort((a, b) => a - b);
+    if (unique.length === 0) return [0];
+
+    const pool: number[] = [];
+    if (unique.includes(0)) pool.push(0);
+    else pool.push(unique[0]);
+
+    const maxNotes = 1 + Math.floor(Math.random() * 3);
+    const remaining = unique.filter((i) => i !== pool[0]);
+    const preferred = remaining.filter((i) => i === 5 || i === 7 || i === 2 || i === 9 || i === 10);
+
+    while (pool.length < maxNotes && (preferred.length || remaining.length)) {
+      const source = preferred.length ? preferred : remaining;
+      const index = Math.floor(Math.random() * source.length);
+      const picked = source.splice(index, 1)[0];
+      pool.push(picked);
+      const remainingIndex = remaining.indexOf(picked);
+      if (remainingIndex >= 0) remaining.splice(remainingIndex, 1);
+    }
+
+    return pool.sort((a, b) => a - b);
+  }
+
+  private getScaleForQuantize(scale: ScaleDef): ScaleDef {
+    if (!scale.tags?.includes('drone')) return scale;
+
+    const needsRefresh =
+      this.droneScaleId !== scale.id ||
+      !this.dronePool ||
+      this.droneTriggerCount % 12 === 0;
+
+    if (needsRefresh) {
+      this.droneScaleId = scale.id;
+      this.dronePool = this.buildDronePool(scale.intervals);
+    }
+
+    this.droneTriggerCount += 1;
+    return { ...scale, intervals: this.dronePool ?? scale.intervals };
+  }
+
   public updateSettings(settings: AudioSettings) {
     if (!this.ctx) return;
 
@@ -214,7 +244,7 @@ class AudioEngine {
     dopplerIntensity: number = 0,
     isReverse: boolean = false, 
     volume: number = 0.5,
-    toneMatch: number = 0.5
+    music?: MusicSettings
   ) {
     if (!this.ctx || this.ctx.state !== 'running') return;
 
@@ -227,7 +257,15 @@ class AudioEngine {
     const safePan = Number.isFinite(pan) ? Math.max(-1, Math.min(1, pan)) : 0;
     const safeDepth = Number.isFinite(depth) ? depth : 0;
     const safeVolume = (Number.isFinite(volume) && volume >= 0) ? volume : 0.5;
-    const safeToneMatch = Number.isFinite(toneMatch) ? toneMatch : 0.5;
+    const safeMusic: MusicSettings = {
+      root: Number.isFinite(music?.root) ? (music?.root ?? 0) : 0,
+      scaleId: music?.scaleId ?? getScaleById().id,
+      scaleIndex: Number.isFinite(music?.scaleIndex) ? (music?.scaleIndex ?? 0) : 0,
+      quantizeEnabled: music?.quantizeEnabled ?? true,
+      noImmediateRepeat: music?.noImmediateRepeat ?? false,
+      avoidLeadingTone: music?.avoidLeadingTone ?? false,
+      noThirds: music?.noThirds ?? false,
+    };
 
     const now = this.ctx.currentTime;
     
@@ -252,26 +290,33 @@ class AudioEngine {
     sourceGain.connect(this.reverbNode!);
     if (this.pingPongInput) sourceGain.connect(this.pingPongInput);
 
-    // --- HARMONIC QUANTIZATION LOGIC ---
-    let scale = this.chromaticScale;
-    
-    // Select scale based on toneMatch slider (Creative Group -> Tone)
-    if (safeToneMatch > 0.8) {
-        scale = this.majorPentatonic; // Very Consonant
-    } else if (safeToneMatch > 0.6) {
-        scale = this.minorPentatonic; // Ambient/Moody
-    } else if (safeToneMatch > 0.4) {
-        scale = this.dorianMode; // Folk/Mysterious
-    } else if (safeToneMatch > 0.2) {
-        scale = this.lydianMode; // Dreamy/Floaty
-    }
-    // Else: Chromatic (Chaos)
+    // --- PITCH SELECTION ---
+    const baseMidi = freqToMidi(safeBaseFreq);
+    const rootMidi = snapMidiToPitchClass(baseMidi, safeMusic.root);
+    const scale = getScaleById(safeMusic.scaleId);
+    const scaleForQuantize = this.getScaleForQuantize(scale);
 
-    const intervalIndex = Math.floor(Math.random() * scale.length);
-    const interval = scale[intervalIndex];
-    
-    const octave = sizeFactor > 0.8 ? 0.5 : sizeFactor < 0.3 ? 2 : 1;
-    let finalFreq = safeBaseFreq * interval * octave;
+    const octaveShift = sizeFactor > 0.8 ? -12 : sizeFactor < 0.3 ? 12 : 0;
+    const depthOffset = (safeDepth - 0.5) * 6;
+    const randomOffset = (Math.random() - 0.5) * 12;
+    const inputMidi = rootMidi + octaveShift + depthOffset + randomOffset;
+
+    let finalMidi = inputMidi;
+    if (safeMusic.quantizeEnabled) {
+        finalMidi = quantizeMidiToScale(inputMidi, {
+          rootMidi,
+          scale: scaleForQuantize,
+          mode: 'nearest',
+          octaveWrap: true,
+          noImmediateRepeat: safeMusic.noImmediateRepeat,
+          lastMidi: this.lastMidi,
+          avoidLeadingTone: safeMusic.avoidLeadingTone,
+          noThirds: safeMusic.noThirds,
+        });
+    }
+
+    this.lastMidi = Math.round(finalMidi);
+    let finalFreq = midiToFreq(finalMidi);
 
     // Safety checks for Physics anomalies
     if (dopplerIntensity > 0 && Number.isFinite(velocityZ)) {
@@ -279,7 +324,7 @@ class AudioEngine {
        const multiplier = Math.pow(2, dopplerCents / 1200);
        finalFreq *= multiplier;
     }
-    
+
     // Ensure Frequency is Finite and within audible range
     if (!Number.isFinite(finalFreq) || Number.isNaN(finalFreq)) {
         finalFreq = 440;

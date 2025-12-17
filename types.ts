@@ -1,3 +1,4 @@
+import type { ScaleId } from './src/music/scales';
 
 export interface AudioSettings {
   volume: number; // 0 to 1
@@ -21,9 +22,18 @@ export interface PhysicsSettings {
   pingPong: number; // 0 to 1 (Amount of delay)
   weakness: number; // 0 to 1 (Rate of decay/popping)
   magneto: number; // 0 to 1 (Magnetic force intensity)
-  toneMatch: number; // 0 to 1 (Harmonic quantization intensity)
   fragmentation: number; // 0 to 1 (Chance to shatter into particles)
   freeze: number; // 0 to 1 (Viscosity/Freezing effect)
+}
+
+export interface MusicSettings {
+  root: number; // 0 to 11 (pitch class)
+  scaleId: ScaleId;
+  scaleIndex: number; // 0 to 1 for knob mapping
+  quantizeEnabled: boolean;
+  noImmediateRepeat: boolean;
+  avoidLeadingTone: boolean;
+  noThirds: boolean;
 }
 
 export enum SoundType {
