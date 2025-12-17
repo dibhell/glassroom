@@ -99,6 +99,7 @@ const GroupLabel: React.FC<{ text: string }> = ({ text }) => (
 const App: React.FC = () => {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioNeedsUnlock, setAudioNeedsUnlock] = useState(false);
   const visualizerRef = useRef<VisualizerHandle>(null);
 
   // Mixer-controlled audio params only (avoid rewriting these on every knob tick)
@@ -230,27 +231,42 @@ const App: React.FC = () => {
     };
   }, [isMusicOpen]);
 
-  const handleStart = useCallback(() => {
-    setIsPlaying((prev) => {
-      const next = !prev;
+  useEffect(() => {
+    audioService.updateMusicSettings(musicSettings);
+  }, [musicSettings]);
 
-      if (!hasInteracted) {
-        setHasInteracted(true);
-        audioService.init();
-      }
+  const handleStart = useCallback(async () => {
+    const next = !isPlaying;
+    setIsPlaying(next);
 
-      if (next) audioService.resume();
-      else audioService.suspend();
+    if (!hasInteracted) {
+      setHasInteracted(true);
+      await audioService.init();
+    }
 
-      return next;
-    });
-  }, [hasInteracted]);
+    if (next) await audioService.resume();
+    else await audioService.suspend();
 
-  const handleStop = useCallback(() => {
+    const state = audioService.getContextState();
+    setAudioNeedsUnlock(next && state !== 'running');
+  }, [hasInteracted, isPlaying]);
+
+  const handleStop = useCallback(async () => {
     setIsPlaying(false);
-    audioService.suspend();
+    setAudioNeedsUnlock(false);
+    await audioService.suspend();
     visualizerRef.current?.reset();
   }, []);
+
+  const handleUnlockAudio = useCallback(async () => {
+    if (!hasInteracted) {
+      setHasInteracted(true);
+      await audioService.init();
+    }
+    await audioService.resume();
+    const state = audioService.getContextState();
+    setAudioNeedsUnlock(state !== 'running');
+  }, [hasInteracted]);
 
   const selectedScale = useMemo(
     () => SCALES.find((scale) => scale.id === musicSettings.scaleId) ?? SCALES[DEFAULT_SCALE_INDEX],
@@ -298,6 +314,18 @@ const App: React.FC = () => {
         <h1 className="text-3xl md:text-5xl font-light tracking-[0.2em] text-[#3F453F] lowercase">icicles chamber</h1>
         <p className="text-[#5F665F] text-xs tracking-widest mt-2 uppercase">Generative Frost Synthesis</p>
       </header>
+
+      {audioNeedsUnlock && (
+        <div className="mb-4 flex justify-center w-full">
+          <button
+            onPointerDown={handleUnlockAudio}
+            onClick={handleUnlockAudio}
+            className="px-4 py-2 bg-[#2E2F2B] text-[#F2F2F0] text-[10px] uppercase tracking-[0.2em] rounded-sm border border-[#5F665F] shadow-sm hover:bg-[#3F453F]"
+          >
+            Tap to enable audio
+          </button>
+        </div>
+      )}
 
       <div className="w-full max-w-5xl relative flex-1 flex flex-col">
         <div className="relative z-10 p-2 rounded-xl bg-[#D9DBD6] shadow-md mb-8 md:mb-12">
@@ -448,6 +476,7 @@ const App: React.FC = () => {
             </div>
 
             <button
+              onPointerDown={handleStart}
               onClick={handleStart}
               className="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]"
             >

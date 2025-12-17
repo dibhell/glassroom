@@ -39,12 +39,25 @@ class AudioEngine {
   private droneScaleId: string | null = null;
   private droneTriggerCount: number = 0;
   private didInstallLifecycle: boolean = false;
+  private didInstallGestureUnlock: boolean = false;
   private lastUserGestureAt: number = 0;
+  private shouldPlay: boolean = false;
+  private lastMusicSettings: MusicSettings | null = null;
+  private backgroundDrone: {
+    oscillators: OscillatorNode[];
+    gains: GainNode[];
+    masterGain: GainNode;
+    filter: BiquadFilterNode;
+    lfo?: OscillatorNode;
+    lfoGain?: GainNode;
+  } | null = null;
 
-  public init() {
+  public async init(): Promise<void> {
     if (this.ctx) return;
 
-    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+      latencyHint: 'interactive',
+    });
     
     // Analyser
     this.analyser = this.ctx.createAnalyser();
@@ -119,7 +132,9 @@ class AudioEngine {
     this.analyser.connect(this.ctx.destination);
 
     this.installLifecycle();
-    try { this.ctx.resume(); } catch { /* ignore */ }
+    this.installGestureUnlock();
+
+    try { await this.ctx.resume(); } catch { /* ignore */ }
   }
 
   public getPeakLevel(): number {
@@ -135,40 +150,70 @@ class AudioEngine {
     return 20 * Math.log10(max);
   }
 
-  public resume() {
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+  public async resume(): Promise<void> {
+    if (!this.ctx) await this.init();
+    if (!this.ctx) return;
+
+    this.shouldPlay = true;
+    if (this.ctx.state !== 'running') {
+      try { await this.ctx.resume(); } catch { /* ignore */ }
+    }
+
+    await this.iosSilentTick();
+
+    if (document.hidden && this.ctx.state === 'running') {
+      this.startBackgroundDrone();
     }
   }
 
-  public suspend() {
-    if (this.ctx && this.ctx.state === 'running') {
-      this.ctx.suspend();
-    }
+  public async suspend(): Promise<void> {
+    if (!this.ctx) return;
+    this.shouldPlay = false;
+    this.stopBackgroundDrone();
+    try { await this.ctx.suspend(); } catch { /* ignore */ }
+  }
+
+  public updateMusicSettings(settings: MusicSettings) {
+    this.lastMusicSettings = settings;
   }
 
   private installLifecycle() {
     if (this.didInstallLifecycle) return;
     this.didInstallLifecycle = true;
 
-    const tryResume = (reason: string) => {
-      if (!this.ctx) return;
-      const state = (this.ctx as any).state;
-      if (state === 'suspended' || state === 'interrupted') {
-        try { this.ctx.resume(); } catch { /* ignore */ }
-      }
+    const tryResume = () => {
+      if (!this.ctx || !this.shouldPlay) return;
+      void this.resume();
     };
 
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) tryResume('visibilitychange');
+      if (!document.hidden) {
+        this.stopBackgroundDrone();
+        tryResume();
+      } else if (this.shouldPlay) {
+        this.startBackgroundDrone();
+        tryResume();
+      }
     });
 
-    window.addEventListener('focus', () => tryResume('focus'));
-    window.addEventListener('pageshow', () => tryResume('pageshow'));
+    window.addEventListener('focus', () => {
+      this.stopBackgroundDrone();
+      tryResume();
+    });
+    window.addEventListener('pageshow', () => {
+      this.stopBackgroundDrone();
+      tryResume();
+    });
+  }
 
-    const unlock = () => {
+  private installGestureUnlock() {
+    if (this.didInstallGestureUnlock) return;
+    this.didInstallGestureUnlock = true;
+
+    const unlock = async () => {
       this.lastUserGestureAt = performance.now();
-      tryResume('gesture');
+      if (!this.shouldPlay) return;
+      await this.resume();
       if (this.ctx && this.ctx.state === 'running') {
         window.removeEventListener('pointerdown', unlock);
         window.removeEventListener('keydown', unlock);
@@ -179,6 +224,122 @@ class AudioEngine {
     window.addEventListener('pointerdown', unlock, { passive: true });
     window.addEventListener('keydown', unlock);
     window.addEventListener('touchstart', unlock, { passive: true });
+  }
+
+  private async iosSilentTick(): Promise<void> {
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      gain.gain.value = 0.00001;
+      osc.connect(gain).connect(this.ctx.destination);
+      const now = this.ctx.currentTime;
+      osc.start(now);
+      osc.stop(now + 0.03);
+    } catch { /* ignore */ }
+  }
+
+  private startBackgroundDrone() {
+    if (!this.ctx || !this.dryGain || !this.reverbNode || this.backgroundDrone) return;
+
+    const music = this.lastMusicSettings ?? {
+      root: 0,
+      scaleId: getScaleById().id,
+      scaleIndex: 0,
+      quantizeEnabled: true,
+      noImmediateRepeat: false,
+      avoidLeadingTone: false,
+      noThirds: false,
+    };
+
+    const scale = getScaleById(music.scaleId);
+    let intervals = scale.intervals.slice();
+    if (music.noThirds || scale.tags?.includes('no3rd')) {
+      intervals = intervals.filter((i) => i !== 3 && i !== 4);
+    }
+    if (music.avoidLeadingTone || scale.avoid?.leadingTone) {
+      intervals = intervals.filter((i) => i !== 11);
+    }
+    if (intervals.length === 0) intervals = scale.intervals.length ? scale.intervals : [0];
+
+    const droneIntervals = this.buildDronePool(intervals).slice(0, 3);
+    const rootPc = ((music.root % 12) + 12) % 12;
+    const baseRootMidi = 48 + rootPc;
+
+    const masterGain = this.ctx.createGain();
+    masterGain.gain.value = 0.05;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+    filter.Q.value = 0.5;
+
+    masterGain.connect(filter);
+    filter.connect(this.dryGain);
+    filter.connect(this.reverbNode);
+
+    const oscillators: OscillatorNode[] = [];
+    const gains: GainNode[] = [];
+
+    droneIntervals.forEach((interval, index) => {
+      const osc = this.ctx!.createOscillator();
+      osc.type = 'sine';
+      const midi = interval === 0 ? baseRootMidi - 12 : baseRootMidi + interval;
+      osc.frequency.value = midiToFreq(midi);
+      osc.detune.value = (Math.random() - 0.5) * 6;
+
+      const gain = this.ctx!.createGain();
+      gain.gain.value = index === 0 ? 0.35 : 0.2;
+      osc.connect(gain).connect(masterGain);
+      osc.start();
+
+      oscillators.push(osc);
+      gains.push(gain);
+    });
+
+    const lfo = this.ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.03;
+    const lfoGain = this.ctx.createGain();
+    lfoGain.gain.value = 0.02;
+    lfo.connect(lfoGain).connect(masterGain.gain);
+    lfo.start();
+
+    this.backgroundDrone = {
+      oscillators,
+      gains,
+      masterGain,
+      filter,
+      lfo,
+      lfoGain,
+    };
+  }
+
+  private stopBackgroundDrone() {
+    if (!this.backgroundDrone || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const { oscillators, gains, masterGain, filter, lfo, lfoGain } = this.backgroundDrone;
+
+    gains.forEach((gain) => gain.gain.setTargetAtTime(0.0001, now, 0.4));
+    masterGain.gain.setTargetAtTime(0.0001, now, 0.4);
+
+    oscillators.forEach((osc) => {
+      try { osc.stop(now + 1); } catch { /* ignore */ }
+    });
+    if (lfo) {
+      try { lfo.stop(now + 1); } catch { /* ignore */ }
+    }
+
+    setTimeout(() => {
+      try { lfoGain?.disconnect(); } catch { /* ignore */ }
+      try { lfo?.disconnect(); } catch { /* ignore */ }
+      try { filter.disconnect(); } catch { /* ignore */ }
+      try { masterGain.disconnect(); } catch { /* ignore */ }
+      gains.forEach((gain) => { try { gain.disconnect(); } catch { /* ignore */ } });
+      oscillators.forEach((osc) => { try { osc.disconnect(); } catch { /* ignore */ } });
+    }, 1200);
+
+    this.backgroundDrone = null;
   }
 
   private createImpulseResponse() {
@@ -287,7 +448,8 @@ class AudioEngine {
   ) {
     if (!this.ctx) return;
     if (this.ctx.state !== 'running') {
-      try { this.ctx.resume(); } catch { /* ignore */ }
+      if (!this.shouldPlay) return;
+      void this.resume();
       if (this.ctx.state !== 'running') return;
     }
 
@@ -309,6 +471,7 @@ class AudioEngine {
       avoidLeadingTone: music?.avoidLeadingTone ?? false,
       noThirds: music?.noThirds ?? false,
     };
+    this.lastMusicSettings = safeMusic;
 
     const now = this.ctx.currentTime;
     
@@ -459,6 +622,11 @@ class AudioEngine {
           }
       }
       return revBuffer;
+  }
+
+  public getContextState(): string | null {
+    if (!this.ctx) return null;
+    return ((this.ctx as any).state as string) ?? this.ctx.state ?? null;
   }
 }
 
