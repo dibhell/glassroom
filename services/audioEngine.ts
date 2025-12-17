@@ -38,6 +38,8 @@ class AudioEngine {
   private dronePool: number[] | null = null;
   private droneScaleId: string | null = null;
   private droneTriggerCount: number = 0;
+  private didInstallLifecycle: boolean = false;
+  private lastUserGestureAt: number = 0;
 
   public init() {
     if (this.ctx) return;
@@ -115,6 +117,9 @@ class AudioEngine {
     this.masterGain.connect(this.limiterNode);
     this.limiterNode.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
+
+    this.installLifecycle();
+    try { this.ctx.resume(); } catch { /* ignore */ }
   }
 
   public getPeakLevel(): number {
@@ -140,6 +145,40 @@ class AudioEngine {
     if (this.ctx && this.ctx.state === 'running') {
       this.ctx.suspend();
     }
+  }
+
+  private installLifecycle() {
+    if (this.didInstallLifecycle) return;
+    this.didInstallLifecycle = true;
+
+    const tryResume = (reason: string) => {
+      if (!this.ctx) return;
+      const state = (this.ctx as any).state;
+      if (state === 'suspended' || state === 'interrupted') {
+        try { this.ctx.resume(); } catch { /* ignore */ }
+      }
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) tryResume('visibilitychange');
+    });
+
+    window.addEventListener('focus', () => tryResume('focus'));
+    window.addEventListener('pageshow', () => tryResume('pageshow'));
+
+    const unlock = () => {
+      this.lastUserGestureAt = performance.now();
+      tryResume('gesture');
+      if (this.ctx && this.ctx.state === 'running') {
+        window.removeEventListener('pointerdown', unlock);
+        window.removeEventListener('keydown', unlock);
+        window.removeEventListener('touchstart', unlock);
+      }
+    };
+
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('keydown', unlock);
+    window.addEventListener('touchstart', unlock, { passive: true });
   }
 
   private createImpulseResponse() {
@@ -246,7 +285,11 @@ class AudioEngine {
     volume: number = 0.5,
     music?: MusicSettings
   ) {
-    if (!this.ctx || this.ctx.state !== 'running') return;
+    if (!this.ctx) return;
+    if (this.ctx.state !== 'running') {
+      try { this.ctx.resume(); } catch { /* ignore */ }
+      if (this.ctx.state !== 'running') return;
+    }
 
     if (this.activeVoices >= this.MAX_VOICES) {
         return; 

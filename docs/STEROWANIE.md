@@ -25,7 +25,7 @@
 - Delay (PingPong) - intensywnosc opoznienia.
 - Doppler - sila efektu dopplera od ruchu w osi Z.
 - Magneto - przyciaganie lub odpychanie miedzy obiektami.
-- Music - wybor skali; kliknij ikone, aby ustawic root, skale i filtry (avoid leading tone, no immediate repeat, no 3rd).
+- Music - wybor skali; pokretlo przewija skale, kliknij ikone, aby ustawic root, skale i filtry (avoid leading tone, no immediate repeat, no 3rd) + podglad interwalow i nut.
 
 ## Grupa Destructive
 - Budding - podzial na mniejsze kulki.

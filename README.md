@@ -11,6 +11,13 @@ ktore poruszaja sie w przestrzeni 3D i uruchamiaja dzwieki przy zderzeniach.
 - Pokretla steruja fizyka, przestrzenia i zachowaniem obiektow.
 - Mixer z transportem, glosnoscia, EQ i miernikiem VU.
 
+## Muzyka i skale
+- Pokretlo MUSIC przewija liste skal (snap do krokow), klik na ikone otwiera mini-picker.
+- Ustawiasz ROOT (C-B), SCALE oraz opcje: Avoid Leading Tone, No Immediate Repeat, No 3rd.
+- Podglad pokazuje nazwe skali, interwaly i nuty w skali.
+- Biblioteka skal: Ionian, Aeolian, Dorian, Mixolydian, Phrygian, pentatoniki,
+  Quartal, Sus2/Sus4, harmonic/melodic minor, whole tone, chromatic, drone.
+
 ## Uruchomienie lokalne
 1. `npm install`
 2. `npm run dev`
