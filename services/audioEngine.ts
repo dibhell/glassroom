@@ -144,11 +144,13 @@ class AudioEngine {
 
     this.lowEQ.connect(this.midEQ);
     this.midEQ.connect(this.highEQ);
-    this.highEQ.connect(this.limiterNode);
-    this.limiterNode.connect(this.peakAnalyser);
-    this.peakAnalyser.connect(this.compressorNode);
+    // highEQ -> compressor -> makeup -> limiter -> main analyser -> destination
+    this.highEQ.connect(this.compressorNode);
     this.compressorNode.connect(this.makeupGain);
-    this.makeupGain.connect(this.mainAnalyser);
+    this.makeupGain.connect(this.limiterNode);
+    // tap peak before limiter
+    this.makeupGain.connect(this.peakAnalyser);
+    this.limiterNode.connect(this.mainAnalyser);
     this.mainAnalyser.connect(this.masterGain);
     this.masterGain.connect(this.ctx.destination);
 

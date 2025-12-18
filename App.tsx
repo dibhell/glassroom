@@ -200,10 +200,7 @@ const App: React.FC = () => {
       baseFrequency: derivedAudio.baseFrequency,
     }),
     [
-      mixerSettings.volume,
-      mixerSettings.low,
-      mixerSettings.mid,
-      mixerSettings.high,
+      mixerSettings,
       derivedAudio.reverbWet,
       derivedAudio.pingPongWet,
       derivedAudio.baseFrequency,
