@@ -1,8 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AudioSettings, SoundType } from '../types';
-import { Play, Pause, Square, Upload, Sliders, Circle, Mic2, XCircle } from 'lucide-react';
+import { Play, Pause, Square, Upload, Sliders, Mic2, XCircle } from 'lucide-react';
 import { audioService } from '../services/audioEngine';
-import { BufferedKnob } from './BufferedKnob';
 
 interface MixerProps {
   settings: AudioSettings;
@@ -12,27 +11,121 @@ interface MixerProps {
   onStop: () => void;
 }
 
+const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
+const TRACK_TOP = 8;
+const TRACK_BOTTOM = 8;
+const THUMB_RADIUS = 8;
+const HITBOX_MIN_W = 36;
+const FADER_HEIGHT = 180;
+
+type FaderProps = {
+  value: number;
+  min: number;
+  max: number;
+  defaultValue: number;
+  onChange: (v: number) => void;
+  disabled?: boolean;
+};
+
+const Fader: React.FC<FaderProps> = ({ value, min, max, defaultValue, onChange, disabled }) => {
+  const stateRef = useRef({
+    pointerId: -1,
+    startY: 0,
+    startX: 0,
+    startVal: 0,
+    moved: false,
+    lastUpAt: 0,
+  });
+
+  const ratio = (value - min) / (max - min || 1);
+  const travel = FADER_HEIGHT - TRACK_TOP - TRACK_BOTTOM - THUMB_RADIUS * 2;
+  const thumbBottom = TRACK_BOTTOM + ratio * travel;
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    stateRef.current.pointerId = e.pointerId;
+    stateRef.current.startY = e.clientY;
+    stateRef.current.startX = e.clientX;
+    stateRef.current.startVal = value;
+    stateRef.current.moved = false;
+
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== stateRef.current.pointerId) return;
+      ev.preventDefault();
+      const dy = stateRef.current.startY - ev.clientY;
+      const sensitivity = (max - min) / travel;
+      let next = stateRef.current.startVal + dy * sensitivity;
+      next = clamp(next, min, max);
+      if (Math.abs(dy) > 3) stateRef.current.moved = true;
+      onChange(next);
+    };
+
+    const up = (ev: PointerEvent) => {
+      if (ev.pointerId !== stateRef.current.pointerId) return;
+      ev.preventDefault();
+      const now = performance.now();
+      const dx = ev.clientX - stateRef.current.startX;
+      const dy = ev.clientY - stateRef.current.startY;
+      const dist = Math.hypot(dx, dy);
+      const dt = now - stateRef.current.lastUpAt;
+      const isDouble = dist < 4 && dt < 300 && !stateRef.current.moved;
+      if (isDouble) {
+        onChange(defaultValue);
+        stateRef.current.lastUpAt = 0;
+      } else {
+        stateRef.current.lastUpAt = now;
+      }
+      stateRef.current.pointerId = -1;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up, { passive: false });
+    window.addEventListener('pointercancel', up, { passive: false });
+  };
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ height: FADER_HEIGHT, width: HITBOX_MIN_W }}>
+      <div
+        className="pointer-events-none absolute"
+        style={{ top: TRACK_TOP, bottom: TRACK_BOTTOM, left: '50%', transform: 'translateX(-50%)', width: 6, backgroundColor: '#B9BCB7', borderRadius: 999 }}
+      />
+      <div
+        className="pointer-events-none absolute bg-[#7A8476] rounded-full shadow-sm"
+        style={{ width: THUMB_RADIUS * 2, height: THUMB_RADIUS * 2, left: '50%', transform: 'translateX(-50%)', bottom: thumbBottom }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{ minWidth: HITBOX_MIN_W, height: '100%', opacity: 0, touchAction: 'none', pointerEvents: disabled ? 'none' : 'auto' }}
+        onPointerDown={handlePointerDown}
+      />
+    </div>
+  );
+};
+
 export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, onPlayPause, onStop }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const peakCanvasRef = useRef<HTMLCanvasElement>(null);
   const mainCanvasRef = useRef<HTMLCanvasElement>(null);
+  const micVURef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recorderChunks = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderTimerRef = useRef<number | null>(null);
+
   const [isRecording, setIsRecording] = useState(false);
-  const [sampleLoaded, setSampleLoaded] = useState<boolean>(audioService.isSampleLoaded());
-  const [micLoaded, setMicLoaded] = useState<boolean>(false);
-  const micVURef = useRef<HTMLCanvasElement>(null);
-  const [micGain, setMicGain] = useState(1);
+  const [sampleAvailable, setSampleAvailable] = useState(audioService.isSampleLoaded());
   const [micAvailable, setMicAvailable] = useState(false);
-  const [sampleAvailable, setSampleAvailable] = useState(sampleLoaded);
-  const [sourceMode, setSourceMode] = useState<'synth' | 'mic' | 'sample'>(sampleLoaded ? 'sample' : 'synth');
+  const [sourceMode, setSourceMode] = useState<'synth' | 'mic' | 'sample'>(sampleAvailable ? 'sample' : 'synth');
+  const [micGain, setMicGain] = useState(1);
 
   const handleEQChange = (band: 'low' | 'mid' | 'high', val: number) => {
-    // Val is 0-100 from range input, map to -10 to 10 dB
-    const db = (val - 50) / 5; 
+    const db = (val - 50) / 5;
     setSettings(prev => ({ ...prev, [band]: db }));
   };
 
@@ -40,7 +133,6 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
     if (e.target.files && e.target.files[0]) {
       audioService.loadSample(e.target.files[0]).then(() => {
         const loaded = audioService.isSampleLoaded();
-        setSampleLoaded(loaded);
         setSampleAvailable(loaded);
         setMicAvailable(false);
         if (loaded) {
@@ -83,7 +175,6 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         }
         await audioService.loadSampleBlob(blob);
         const loaded = audioService.isSampleLoaded();
-        setSampleLoaded(loaded);
         setMicAvailable(loaded);
         setSampleAvailable(false);
         if (loaded) {
@@ -97,24 +188,34 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         if (rec.state === 'recording') {
           rec.stop();
         }
-      }, 10000); // hard cap 10s
+      }, 10000);
       setIsRecording(true);
     } catch (err) {
       console.error('Recording failed', err);
     }
   };
 
-  const handleClearSample = () => {
+  const handleClearMic = () => {
+    if (!micAvailable) return;
     audioService.clearSample();
-    setSampleLoaded(false);
     setMicAvailable(false);
+    if (sourceMode === 'mic') {
+      setSourceMode('synth');
+      audioService.setSoundType(SoundType.SYNTH);
+    }
+  };
+
+  const handleClearSample = () => {
+    if (!sampleAvailable) return;
+    audioService.clearSample();
     setSampleAvailable(false);
-    setSourceMode('synth');
-    audioService.setSoundType(SoundType.SYNTH);
+    if (sourceMode === 'sample') {
+      setSourceMode('synth');
+      audioService.setSoundType(SoundType.SYNTH);
+    }
   };
 
   useEffect(() => {
-    // prime mic for VU even when not playing
     void audioService.ensureMic();
     audioService.setMicGain(1);
     const peakCtx = peakCanvasRef.current?.getContext('2d');
@@ -143,82 +244,47 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
 
       renderVU(peakCtx, audioService.getPeakLevel());
       renderVU(mainCtx, audioService.getMainLevel());
-      if (micCtx) {
-        renderVU(micCtx, audioService.getMicLevelDb());
-      }
+      if (micCtx) renderVU(micCtx, audioService.getMicLevelDb());
 
       animationRef.current = requestAnimationFrame(drawVU);
     };
 
     animationRef.current = requestAnimationFrame(drawVU);
-
     return () => {
-        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, []);
 
-  const FADER_HEIGHT = 180;
-
-  const selectSource = (mode: 'synth' | 'mic' | 'sample') => {
-    if (mode === 'synth') {
-      setSourceMode('synth');
-      audioService.setSoundType(SoundType.SYNTH);
-      return;
-    }
-    if (mode === 'mic') {
-      if (!micAvailable) return;
-      setSourceMode('mic');
-      audioService.setSoundType(SoundType.SAMPLE);
-      return;
-    }
-    if (mode === 'sample') {
-      if (!sampleAvailable) return;
-      setSourceMode('sample');
-      audioService.setSoundType(SoundType.SAMPLE);
-    }
-  };
-
-  const loadedLabel = (() => {
-    if (sourceMode === 'mic' && micAvailable) return 'MIC SAMPLE';
-    if (sourceMode === 'sample' && sampleAvailable) return 'FILE SAMPLE';
-    return 'DEFAULT SYNTH';
-  })();
-
-  // legacy vertical range style used by hidden inputs
-  const verticalRangeStyle: React.CSSProperties = {
-    writingMode: 'vertical-lr',
-    direction: 'rtl',
-    appearance: 'auto',
-    width: '100%',
-  };
+  const loadedLabel =
+    sourceMode === 'mic' && micAvailable
+      ? 'MIC SAMPLE'
+      : sourceMode === 'sample' && sampleAvailable
+      ? 'FILE SAMPLE'
+      : 'DEFAULT SYNTH';
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-[#D9DBD6] border border-[#B9BCB7] rounded-3xl p-6 shadow-lg relative mt-6 mb-14 text-[#5F665F] font-mono tracking-widest select-none h-auto transition-all">
-      
-      {/* Label Top Left */}
+    <div className="w-full max-w-6xl mx-auto bg-[#D9DBD6] border border-[#B9BCB7] rounded-3xl p-6 shadow-lg relative mt-6 mb-14 text-[#5F665F] font-mono tracking-widest select-none h-auto transition-all">
       <div className="absolute top-4 left-6 text-[10px] text-[#7A8476] flex items-center gap-2">
         <Sliders size={12} /> MASTER CONTROL
       </div>
 
-      <div className="flex flex-col md:flex-row items-center justify-between pt-6 md:pt-4 gap-8 md:gap-4">
-        
-        {/* SECTION 1: TRANSPORT */}
-        <div className="flex items-center gap-6 px-4">
-            <button 
-            onClick={onPlayPause}
-            className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-sm
-              ${isPlaying ? 'bg-[#7A8476] text-[#F2F2F0]' : 'bg-[#7A8476] text-[#F2F2F0] hover:bg-[#5F665F]'}`}
+      <div className="grid gap-4" style={{ gridTemplateColumns: '220px 220px 200px 220px 220px' }}>
+        {/* TRANSPORT */}
+        <div className="bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-4">
+          <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">Transport</div>
+          <div className="flex items-center justify-center gap-4 h-[200px]">
+            <button
+              onClick={onPlayPause}
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-sm ${isPlaying ? 'bg-[#7A8476] text-[#F2F2F0]' : 'bg-[#7A8476] text-[#F2F2F0] hover:bg-[#5F665F]'}`}
             >
-            {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current ml-1" />}
+              {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current ml-1" />}
             </button>
-            
-            <button 
-            onClick={onStop}
-            className="w-16 h-16 rounded-full border border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] flex items-center justify-center hover:bg-[#B9BCB7] transition-all"
+            <button
+              onClick={onStop}
+              className="w-16 h-16 rounded-full border border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] flex items-center justify-center hover:bg-[#B9BCB7] transition-all"
             >
-            <Square size={20} className="fill-current" />
+              <Square size={20} className="fill-current" />
             </button>
-
             <button
               onClick={handleRecordToggle}
               className={`w-16 h-16 rounded-full border ${isRecording ? 'border-[#7A8476] bg-[#7A8476] text-[#F2F2F0]' : 'border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] hover:bg-[#B9BCB7]'} flex items-center justify-center transition-all`}
@@ -226,175 +292,147 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
             >
               <Mic2 size={20} className="fill-current" />
             </button>
+          </div>
+        </div>
 
-            <div className="flex flex-col items-center gap-2">
-              <canvas ref={micVURef} width={6} height={64} className="rounded-sm bg-black/5 h-16 w-2" />
-              <div className="flex items-center gap-2">
-                <span className="text-[8px] uppercase opacity-70">Mic Gain</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="4"
-                  step="0.05"
-                  value={micGain}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    setMicGain(v);
-                    audioService.setMicGain(v);
-                  }}
-                  onPointerDown={() => audioService.ensureMic()}
-                  className="w-24 accent-[#7A8476]"
+        {/* MIC */}
+        <div className="bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-2">
+          <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">Mic</div>
+          <div className="flex items-center justify-center gap-4 h-[200px]">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[8px] uppercase opacity-60">Gain</span>
+              <Fader
+                value={micGain}
+                min={0}
+                max={4}
+                defaultValue={1}
+                onChange={(v) => {
+                  setMicGain(v);
+                  audioService.setMicGain(v);
+                }}
+              />
+              <span className="text-[9px] opacity-60">{(micGain * 25).toFixed(0)}%</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[8px] uppercase opacity-60">VU</span>
+              <canvas ref={micVURef} width={10} height={FADER_HEIGHT} className="rounded-sm bg-black/5 h-[180px] w-2.5" />
+              <span className="text-[9px] opacity-60">dB</span>
+            </div>
+          </div>
+        </div>
+
+        {/* OUT */}
+        <div className="bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-3">
+          <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">Out</div>
+          <div className="flex items-end justify-center gap-4 h-[200px]">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[8px] uppercase opacity-60">Peak</span>
+              <canvas ref={peakCanvasRef} width={10} height={FADER_HEIGHT} className="rounded-sm bg-black/5 h-[180px] w-2.5" />
+              <span className="text-[9px] opacity-60">dB</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[8px] uppercase opacity-60">Main</span>
+              <canvas ref={mainCanvasRef} width={10} height={FADER_HEIGHT} className="rounded-sm bg-black/5 h-[180px] w-2.5" />
+              <span className="text-[9px] opacity-60">dB</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[8px] uppercase opacity-60">Level</span>
+              <Fader
+                value={settings.volume}
+                min={0}
+                max={1}
+                defaultValue={0.7}
+                onChange={(v) => setSettings(p => ({ ...p, volume: v }))}
+              />
+              <span className="text-[9px] opacity-60">{(settings.volume * 100).toFixed(0)}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* EQ */}
+        <div className="bg-[#E4E5E2] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-2 shadow-inner">
+          <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">EQ</div>
+          <div className="flex items-end justify-center gap-4 h-[200px]">
+            {['low', 'mid', 'high'].map((band) => (
+              <div key={band} className="flex flex-col items-center gap-1">
+                <span className="text-[8px] uppercase opacity-60">{band}</span>
+                <Fader
+                  value={settings[band as keyof AudioSettings] as number}
+                  min={-10}
+                  max={10}
+                  defaultValue={0}
+                  onChange={(v) => handleEQChange(band as any, v)}
                 />
+                <span className="text-[9px] opacity-60">{(settings[band as keyof AudioSettings] as number).toFixed(1)}dB</span>
               </div>
-            </div>
+            ))}
+          </div>
         </div>
 
-        <div className="hidden md:block w-px h-16 bg-[#B9BCB7]/50"></div>
-        <div className="block md:hidden w-16 h-px bg-[#B9BCB7]/50"></div>
-
-        {/* SECTION 2: VOLUME */}
-        <div className="flex items-end gap-6 px-4 h-full pb-0 md:pb-4">
-             {/* Use a grid to ensure perfect horizontal alignment of tops and bottoms */}
-             <div className="grid grid-cols-3 gap-x-6 gap-y-1 h-32 items-end">
-                {/* Headers */}
-                <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Peak</div>
-                <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Main</div>
-                <div className="text-[10px] font-bold text-center uppercase tracking-wider mb-auto pt-1">Level</div>
-
-                {/* Peak meter */}
-                <div className="h-24 flex justify-center items-end">
-                  <canvas ref={peakCanvasRef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
-                </div>
-                {/* Main meter */}
-                <div className="h-24 flex justify-center items-end">
-                  <canvas ref={mainCanvasRef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
-                </div>
-                {/* Volume slider */}
-                <div className="h-24 flex justify-center relative w-8">
-                     <div className="absolute inset-y-0 w-1.5 bg-[#B9BCB7] rounded-full left-1/2 -translate-x-1/2"></div>
-                     <input 
-                        type="range" 
-                        min="0" 
-                        max="1" 
-                        step="0.01" 
-                        value={settings.volume} 
-                        onChange={(e) => setSettings(p => ({ ...p, volume: parseFloat(e.target.value) }))}
-                        className="h-full w-6 opacity-0 cursor-pointer absolute z-10"
-                        style={verticalRangeStyle}
-                    />
-                     <div 
-                        className="absolute w-4 h-4 bg-[#7A8476] rounded-full shadow-sm left-1/2 -translate-x-1/2 pointer-events-none transition-transform duration-75"
-                        style={{ bottom: `calc(${settings.volume * 100}% - 8px)` }}
-                     ></div>
-                </div>
-
-                {/* Footers */}
-                <div className="text-[8px] opacity-60 text-center">dB</div>
-                <div className="text-[8px] opacity-60 text-center">dB</div>
-                <div className="text-[9px] text-center">{(settings.volume * 100).toFixed(0)}%</div>
-             </div>
-        </div>
-
-        <div className="hidden md:block w-px h-16 bg-[#B9BCB7]/50"></div>
-        <div className="block md:hidden w-16 h-px bg-[#B9BCB7]/50"></div>
-
-        {/* SECTION 3: EQ */}
-        <div className="flex gap-4 px-6 bg-[#F2F2F0] py-4 rounded-xl border border-[#B9BCB7]/30 shadow-inner h-32 items-end justify-center w-full md:w-auto">
-             {['low', 'mid', 'high'].map((band) => (
-                <div key={band} className="flex flex-col items-center gap-2 h-full justify-between">
-                     {/* Spacer for alignment with MAIN text if needed, or just justify-end */}
-                    <div className="h-24 w-2.5 bg-[#D9DBD6] rounded-full relative overflow-hidden group border border-[#B9BCB7]">
-                         {/* Fill */}
-                        <div 
-                            className={`absolute bottom-0 w-full bg-[#5F665F] rounded-b-full transition-all`} 
-                            style={{ height: `${(settings[band as keyof AudioSettings] as number + 10) * 5}%` }} 
-                        />
-                        <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={(settings[band as keyof AudioSettings] as number * 5) + 50} 
-                            onChange={(e) => handleEQChange(band as any, parseFloat(e.target.value))}
-                            onDoubleClick={() => setSettings((p) => ({ ...p, [band]: 0 }))}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                            style={verticalRangeStyle} 
-                        />
-                    </div>
-                    <span className="text-[8px] uppercase">{band}</span>
-                </div>
-             ))}
-        </div>
-
-        <div className="hidden md:block w-px h-16 bg-[#B9BCB7]/50"></div>
-        <div className="block md:hidden w-16 h-px bg-[#B9BCB7]/50"></div>
-
-        {/* SECTION 4: Dynamics */}
-        {/* Dynamics panel hidden after hardcoded values */}
-        <div className="hidden" aria-hidden="true"></div>
-
-        {/* SECTION 5: LOAD & FREQ */}
-        <div className="flex flex-col md:flex-col items-center justify-center gap-4 px-4 w-full md:w-auto">
-             <div className="flex items-center gap-2 flex-wrap justify-center">
-               <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-6 py-3 md:py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm"
-               >
-                  <Upload size={12} />
-                  Load Sample
-               </button>
-               <button
-                  onClick={handleClearSample}
-                  className="flex items-center gap-2 px-3 py-3 md:py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
-                  disabled={!sampleLoaded}
-               >
-                  <XCircle size={14} />
-                  Clear
-               </button>
-               <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#7A8476]">
-                 <span className="text-[8px] opacity-70">MIC GAIN</span>
-                 <input
-                   type="range"
-                   min="0"
-                   max="4"
-                   step="0.05"
-                   value={micGain}
-                   onChange={(e) => {
-                     const v = parseFloat(e.target.value);
-                     setMicGain(v);
-                     audioService.setMicGain(v);
-                   }}
-                   onPointerDown={() => audioService.ensureMic()}
-                   className="w-28 accent-[#7A8476]"
-                 />
-               </div>
-             </div>
-             <input 
-                ref={fileInputRef}
-                type="file" 
-                accept="audio/*" 
-                className="hidden" 
-                onChange={handleFileUpload}
+        {/* DATA */}
+        <div className="bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-3">
+          <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">Data</div>
+          <div className="flex justify-center">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-6 py-3 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm"
+            >
+              <Upload size={12} />
+              Load Sample
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={handleFileUpload}
             />
-            <div className="text-[10px] uppercase tracking-widest text-[#7A8476]">
-              {sampleLoaded ? 'Sample loaded' : 'Default synth'}
-            </div>
+          </div>
 
-             <div className="w-40">
-                <div className="flex justify-between text-[8px] mb-1 opacity-70">
-                    <span>FREQ</span>
-                    <span>{settings.baseFrequency}Hz</span>
-                </div>
-                <input 
-                    type="range"
-                    min="100"
-                    max="880"
-                    value={settings.baseFrequency}
-                    onChange={(e) => setSettings(p => ({ ...p, baseFrequency: parseFloat(e.target.value) }))}
-                    className="w-full h-1 bg-[#B9BCB7] rounded-full accent-[#7A8476] cursor-pointer"
-                />
-             </div>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              className={`px-3 py-1 rounded-full text-[10px] uppercase border ${sourceMode === 'mic' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'} ${!micAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => selectSource('mic')}
+            >
+              Mic
+            </button>
+            <button
+              className={`px-3 py-1 rounded-full text-[10px] uppercase border ${sourceMode === 'synth' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'}`}
+              onClick={() => selectSource('synth')}
+            >
+              Synth
+            </button>
+            <button
+              className={`px-3 py-1 rounded-full text-[10px] uppercase border ${sourceMode === 'sample' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'} ${!sampleAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => selectSource('sample')}
+            >
+              Sample
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={handleClearMic}
+              className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
+              disabled={!micAvailable}
+            >
+              <XCircle size={12} />
+              Clear Mic
+            </button>
+            <button
+              onClick={handleClearSample}
+              className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
+              disabled={!sampleAvailable}
+            >
+              <XCircle size={12} />
+              Clear Sample
+            </button>
+          </div>
+
+          <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">
+            Loaded: {loadedLabel}
+          </div>
         </div>
-
       </div>
     </div>
   );
