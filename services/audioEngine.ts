@@ -584,7 +584,8 @@ class AudioEngine {
     dopplerIntensity: number = 0,
     isReverse: boolean = false, 
     volume: number = 0.5,
-    music?: MusicSettings
+    music?: MusicSettings,
+    sampleGain: number = 1
   ) {
     if (!this.ctx) return;
     if (this.ctx.state !== 'running') {
@@ -678,7 +679,7 @@ class AudioEngine {
     finalFreq = Math.max(40, Math.min(12000, finalFreq));
 
     // --- GAIN STAGING ---
-    const sampleGain = Number.isFinite((settings as any).sampleGain) ? ((settings as any).sampleGain as number) : 1;
+    const safeSampleGain = Number.isFinite(sampleGain) ? sampleGain : 1;
     const baseVol = 0.25 * safeVolume; 
     
     // Use an Epsilon to prevent exponentialRampToValueAtTime errors when starting from 0
@@ -708,7 +709,7 @@ class AudioEngine {
         source.playbackRate.setValueAtTime(Math.max(0.1, Math.min(rate, 4.0)), now);
         
         // Start envelope
-        sourceGain.gain.setValueAtTime(peakVol * sampleGain, now);
+        sourceGain.gain.setValueAtTime(peakVol * safeSampleGain, now);
         // Exponential fade out
         sourceGain.gain.exponentialRampToValueAtTime(EPSILON, now + (this.customBuffer.duration / rate));
         

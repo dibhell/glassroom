@@ -366,7 +366,8 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         audio.baseFrequency,
         pan, depth, b.vz,
         phys.doppler, isReverse, finalVol,
-        musicSettingsRef.current
+        musicSettingsRef.current,
+        audio.sampleGain ?? 1
       );
 
       if (Math.random() > 0.85) {
