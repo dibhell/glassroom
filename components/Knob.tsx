@@ -59,9 +59,10 @@ export function Knob({
 
   const norm = useMemo(() => clamp((value - min) / (max - min || 1), 0, 1), [value, min, max]);
 
-  const START_OFFSET_DEG = -80; // global offset applied to track + progress + pointer
-  const startDeg = 225 + START_OFFSET_DEG; // 0.0 start (rotated left)
-  const sweepDeg = 270;
+  const BASE_START_DEG = 225; // left-down
+  const START_OFFSET_DEG = 0; // tweak if needed
+  const startDeg = BASE_START_DEG + START_OFFSET_DEG;
+  const sweepDeg = 90; // symmetrical: start 225°, end 315°, mid at top (270°)
   const cw = true;
 
   const angleDegFromValue = (t: number) => {
