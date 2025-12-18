@@ -78,9 +78,8 @@ class AudioEngine {
     this.compressorNode.attack.value = 0.0001; // 0.10ms
     this.compressorNode.release.value = 0.5;   // 500ms
     this.compressorNode.knee.value = 6;
-    // Threshold auto-tuned in getPeakLevel
 
-    // Make-up gain to target output (-10 LUFS approx)
+    // Make-up gain
     this.makeupGain = this.ctx.createGain();
     this.makeupGain.gain.value = 1;
 
@@ -172,26 +171,12 @@ class AudioEngine {
     return 20 * Math.log10(max);
   }
 
-  private tuneCompressor(peakDb: number) {
-    if (!this.compressorNode || !this.makeupGain) return;
-    // Threshold follows recent peak so we always shave the crest
-    const targetPeak = -10; // approx LUFS target
-    const threshold = Math.min(-1, peakDb - 6); // below max peak
-    this.compressorNode.threshold.setTargetAtTime(threshold, this.ctx!.currentTime, 0.05);
-    // Simple auto-makeup to push toward targetPeak
-    const gainDb = targetPeak - peakDb;
-    const lin = Math.pow(10, gainDb / 20);
-    this.makeupGain.gain.setTargetAtTime(clamp(lin, 0.25, 6), this.ctx!.currentTime, 0.05);
-  }
-
   public getMainLevel(): number {
     return AudioEngine.extractPeakDb(this.mainAnalyser);
   }
 
   public getPeakLevel(): number {
-    const peakDb = AudioEngine.extractPeakDb(this.peakAnalyser);
-    this.tuneCompressor(peakDb);
-    return peakDb;
+    return AudioEngine.extractPeakDb(this.peakAnalyser);
   }
 
   public async resume(): Promise<void> {
@@ -454,6 +439,25 @@ class AudioEngine {
     if (this.masterGain) {
         const safeVol = Number.isFinite(settings.volume) ? settings.volume : 0;
         this.masterGain.gain.setTargetAtTime(safeVol, this.ctx.currentTime, 0.1);
+    }
+
+    if (this.compressorNode && this.makeupGain) {
+        const thr = Number.isFinite(settings.compThreshold ?? NaN) ? settings.compThreshold! : -12;
+        const ratio = Number.isFinite(settings.compRatio ?? NaN) ? settings.compRatio! : 3;
+        const att = Number.isFinite(settings.compAttack ?? NaN) ? settings.compAttack! : 0.0001;
+        const rel = Number.isFinite(settings.compRelease ?? NaN) ? settings.compRelease! : 0.5;
+        const makeupDb = Number.isFinite(settings.makeupGainDb ?? NaN) ? settings.makeupGainDb! : 0;
+        this.compressorNode.threshold.setTargetAtTime(thr, this.ctx.currentTime, 0.05);
+        this.compressorNode.ratio.setTargetAtTime(ratio, this.ctx.currentTime, 0.05);
+        this.compressorNode.attack.setTargetAtTime(att, this.ctx.currentTime, 0.05);
+        this.compressorNode.release.setTargetAtTime(rel, this.ctx.currentTime, 0.05);
+        const lin = Math.pow(10, makeupDb / 20);
+        this.makeupGain.gain.setTargetAtTime(clamp(lin, 0.1, 8), this.ctx.currentTime, 0.05);
+    }
+
+    if (this.limiterNode) {
+        const limThr = Number.isFinite(settings.limiterThreshold ?? NaN) ? settings.limiterThreshold! : -1;
+        this.limiterNode.threshold.setTargetAtTime(limThr, this.ctx.currentTime, 0.02);
     }
 
     if (this.lowEQ) this.lowEQ.gain.setTargetAtTime(settings.low || 0, this.ctx.currentTime, 0.1);

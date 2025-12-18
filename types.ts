@@ -8,6 +8,12 @@ export interface AudioSettings {
   reverbWet: number; // 0 to 1
   baseFrequency: number; // Hz
   pingPongWet: number; // 0 to 1
+  compThreshold?: number; // dB
+  compRatio?: number;
+  compAttack?: number; // seconds
+  compRelease?: number; // seconds
+  makeupGainDb?: number; // dB
+  limiterThreshold?: number; // dB
 }
 
 export interface PhysicsSettings {
