@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { AudioSettings } from '../types';
-import { Play, Pause, Square, Upload, Sliders, Circle, Mic, XCircle } from 'lucide-react';
+import { Play, Pause, Square, Upload, Sliders, Circle, MicV2, XCircle } from 'lucide-react';
 import { audioService } from '../services/audioEngine';
 import { BufferedKnob } from './BufferedKnob';
 
@@ -24,7 +24,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   const [isRecording, setIsRecording] = useState(false);
   const [sampleLoaded, setSampleLoaded] = useState<boolean>(audioService.isSampleLoaded());
   const micVURef = useRef<HTMLCanvasElement>(null);
-  const [micGain, setMicGain] = useState(0);
+  const [micGain, setMicGain] = useState(1);
 
   const handleEQChange = (band: 'low' | 'mid' | 'high', val: number) => {
     // Val is 0-100 from range input, map to -10 to 10 dB
@@ -90,6 +90,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   };
 
   useEffect(() => {
+    // prime mic for VU even when not playing
+    void audioService.ensureMic();
+    audioService.setMicGain(1);
     const peakCtx = peakCanvasRef.current?.getContext('2d');
     const mainCtx = mainCanvasRef.current?.getContext('2d');
     const micCtx = micVURef.current?.getContext('2d');
@@ -149,7 +152,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
       <div className="flex flex-col md:flex-row items-center justify-between pt-6 md:pt-4 gap-8 md:gap-4">
         
         {/* SECTION 1: TRANSPORT */}
-        <div className="flex items-center gap-4 px-4">
+        <div className="flex items-center gap-6 px-4">
             <button 
             onClick={onPlayPause}
             className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-sm
@@ -170,8 +173,29 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
               className={`w-16 h-16 rounded-full border ${isRecording ? 'border-[#7A8476] bg-[#7A8476] text-[#F2F2F0]' : 'border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] hover:bg-[#B9BCB7]'} flex items-center justify-center transition-all`}
               title={isRecording ? 'Stop recording' : 'Record sample (max 10s)'}
             >
-              <Mic size={20} className="fill-current" />
+              <MicV2 size={20} className="fill-current" />
             </button>
+
+            <div className="flex flex-col items-center gap-2">
+              <canvas ref={micVURef} width={6} height={64} className="rounded-sm bg-black/5 h-16 w-2" />
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] uppercase opacity-70">Mic Gain</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="4"
+                  step="0.05"
+                  value={micGain}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setMicGain(v);
+                    audioService.setMicGain(v);
+                  }}
+                  onPointerDown={() => audioService.ensureMic()}
+                  className="w-24 accent-[#7A8476]"
+                />
+              </div>
+            </div>
         </div>
 
         <div className="hidden md:block w-px h-16 bg-[#B9BCB7]/50"></div>
@@ -180,11 +204,10 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         {/* SECTION 2: VOLUME */}
         <div className="flex items-end gap-6 px-4 h-full pb-0 md:pb-4">
              {/* Use a grid to ensure perfect horizontal alignment of tops and bottoms */}
-             <div className="grid grid-cols-4 gap-x-6 gap-y-1 h-32 items-end">
+             <div className="grid grid-cols-3 gap-x-6 gap-y-1 h-32 items-end">
                 {/* Headers */}
                 <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Peak</div>
                 <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Main</div>
-                <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Mic</div>
                 <div className="text-[10px] font-bold text-center uppercase tracking-wider mb-auto pt-1">Level</div>
 
                 {/* Peak meter */}
@@ -194,10 +217,6 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                 {/* Main meter */}
                 <div className="h-24 flex justify-center items-end">
                   <canvas ref={mainCanvasRef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
-                </div>
-                {/* Mic meter */}
-                <div className="h-24 flex justify-center items-end">
-                  <canvas ref={micVURef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
                 </div>
                 {/* Volume slider */}
                 <div className="h-24 flex justify-center relative w-8">
@@ -219,7 +238,6 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                 </div>
 
                 {/* Footers */}
-                <div className="text-[8px] opacity-60 text-center">dB</div>
                 <div className="text-[8px] opacity-60 text-center">dB</div>
                 <div className="text-[8px] opacity-60 text-center">dB</div>
                 <div className="text-[9px] text-center">{(settings.volume * 100).toFixed(0)}%</div>
