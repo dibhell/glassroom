@@ -6,9 +6,9 @@ type KnobProps = {
   min?: number;
   max?: number;
   defaultValue?: number;
-  steps?: number; // e.g. 101 -> snap every 0.01
-  sensitivity?: number; // default 0.004 (250px = +1)
-  fineSensitivity?: number; // shift held: default 0.0015
+  steps?: number;
+  sensitivity?: number;
+  fineSensitivity?: number;
   disabled?: boolean;
   className?: string;
   label?: string;
@@ -17,15 +17,12 @@ type KnobProps = {
   size?: number;
 };
 
-function clamp(x: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, x));
-}
-
-function snap01(x: number, steps?: number) {
-  if (!steps || steps <= 1) return x;
+const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
+const snap01 = (t: number, steps?: number) => {
+  if (!steps || steps <= 1) return t;
   const k = steps - 1;
-  return Math.round(x * k) / k;
-}
+  return Math.round(t * k) / k;
+};
 
 export function Knob({
   value,
@@ -43,27 +40,29 @@ export function Knob({
   color = '#7A8476',
   size = 48,
 }: KnobProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const dragState = useRef<{ startY: number; startValue: number; pointerId: number | null }>({
-    startY: 0,
-    startValue: value,
-    pointerId: null,
-  });
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<null | { id: number; startY: number; start01: number; lastTapAt: number }>(null);
+  const cleanupRef = useRef<null | (() => void)>(null);
 
-  // Normalized value 0..1
   const norm = useMemo(() => clamp((value - min) / (max - min || 1), 0, 1), [value, min, max]);
+
+  const to01 = (v: number) => (v - min) / (max - min || 1);
+  const from01 = (t: number) => min + t * (max - min);
+
+  const set01 = (t01: number) => {
+    const t = snap01(clamp(t01, 0, 1), steps);
+    onChange(from01(t));
+  };
 
   const startDeg = -135;
   const sweepDeg = 270;
-  const rotation = startDeg + norm * sweepDeg - 90; // indicator up -> align to start
+  const rotation = startDeg + norm * sweepDeg;
 
-  // Precompute arc paths
   const strokeWidth = size * 0.1;
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - strokeWidth;
-
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const polar = (deg: number) => {
     const rad = toRad(deg);
@@ -83,86 +82,82 @@ export function Knob({
       ? ''
       : `M ${trackStart.x} ${trackStart.y} A ${r} ${r} 0 ${valueLargeArc} 1 ${valueEnd.x} ${valueEnd.y}`;
 
-  const applyDelta = (clientY: number, shiftKey: boolean) => {
-    const state = dragState.current;
-    const deltaY = state.startY - clientY; // up is positive
-    const sens = (shiftKey ? fineSensitivity : sensitivity) * (max - min);
-    let next = state.startValue + deltaY * sens;
-    next = clamp(next, min, max);
-    const snappedNorm = snap01((next - min) / (max - min || 1), steps);
-    const snapped = min + snappedNorm * (max - min);
-    if (snapped !== value) onChange(snapped);
+  const endDrag = () => {
+    cleanupRef.current?.();
+    cleanupRef.current = null;
+    setIsDragging(false);
+    dragRef.current = null;
   };
 
-  const handlePointerDown = (e: React.PointerEvent) => {
+  useEffect(() => () => endDrag(), []);
+
+  const onPointerDown = (e: React.PointerEvent) => {
     if (disabled) return;
     e.preventDefault();
     e.stopPropagation();
-    const node = ref.current;
-    if (node) node.setPointerCapture(e.pointerId);
-    dragState.current = { startY: e.clientY, startValue: value, pointerId: e.pointerId };
-    setDragging(true);
-  };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragging) return;
-    e.preventDefault();
-    applyDelta(e.clientY, e.shiftKey);
-  };
+    const now = performance.now();
+    const lastTap = dragRef.current?.lastTapAt ?? 0;
+    const isDouble = now - lastTap < 320;
 
-  const endDrag = (e: React.PointerEvent) => {
-    const node = ref.current;
-    if (node && dragState.current.pointerId !== null) {
-      try {
-        node.releasePointerCapture(dragState.current.pointerId);
-      } catch {
-        /* ignore */
-      }
-    }
-    dragState.current.pointerId = null;
-    setDragging(false);
-  };
-
-  const handleDoubleClick = () => {
-    const clamped = clamp(defaultValue, min, max);
-    onChange(snap01((clamped - min) / (max - min || 1), steps) * (max - min) + min);
-  };
-
-  // Cleanup just in case
-  useEffect(() => {
-    return () => {
-      const node = ref.current;
-      if (node && dragState.current.pointerId !== null) {
-        try {
-          node.releasePointerCapture(dragState.current.pointerId);
-        } catch {
-          /* ignore */
-        }
-      }
+    dragRef.current = {
+      id: e.pointerId,
+      startY: e.clientY,
+      start01: to01(value),
+      lastTapAt: now,
     };
-  }, []);
+
+    if (isDouble) {
+      set01(to01(defaultValue));
+    }
+
+    setIsDragging(true);
+
+    const move = (ev: PointerEvent) => {
+      const st = dragRef.current;
+      if (!st || ev.pointerId !== st.id) return;
+      ev.preventDefault();
+      const dy = st.startY - ev.clientY;
+      const sens = (ev as any).shiftKey ? fineSensitivity : sensitivity;
+      set01(st.start01 + dy * sens);
+    };
+
+    const up = (ev: PointerEvent) => {
+      const st = dragRef.current;
+      if (!st || ev.pointerId !== st.id) return;
+      ev.preventDefault();
+      endDrag();
+    };
+
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up, { passive: false });
+    window.addEventListener('pointercancel', up, { passive: false });
+    cleanupRef.current = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  };
 
   return (
-    <div className={`flex flex-col items-center gap-1 select-none touch-none ${className}`}>
+    <div
+      className={`flex flex-col items-center gap-1 select-none touch-none ${className} ${isDragging ? 'is-dragging' : ''}`}
+      style={{
+        touchAction: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        pointerEvents: 'auto',
+      }}
+    >
       <div
         ref={ref}
         className="relative cursor-ns-resize group touch-none"
         style={{ width: size, height: size, touchAction: 'none' }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onDoubleClick={handleDoubleClick}
-        title="Drag up/down | Shift for precision | Double click reset"
+        onPointerDown={onPointerDown}
       >
         <svg width={size} height={size} className="drop-shadow-sm pointer-events-none">
-          <path
-            d={trackPath}
-            fill="none"
-            stroke="#D9DBD6"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-          />
+          <path d={trackPath} fill="none" stroke="#D9DBD6" strokeWidth={strokeWidth} strokeLinecap="round" />
           {valuePath && (
             <path
               d={valuePath}
@@ -170,8 +165,7 @@ export function Knob({
               stroke={color}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              className={`transition-all ${dragging ? 'duration-0' : 'duration-75 ease-out'}`}
-              style={{ opacity: 0.9, filter: `drop-shadow(0 0 3px ${color}40)` }}
+              style={{ opacity: 0.9 }}
             />
           )}
         </svg>
@@ -189,11 +183,7 @@ export function Knob({
             {label}
           </span>
         )}
-        <span
-          className={`text-[10px] font-mono font-bold leading-none transition-colors ${
-            dragging ? 'text-[#2E2F2B]' : 'text-[#5F665F]'
-          }`}
-        >
+        <span className="text-[10px] font-mono font-bold leading-none">
           {format ? format(value) : value.toFixed(2)}
         </span>
       </div>

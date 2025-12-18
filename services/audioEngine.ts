@@ -4,11 +4,16 @@ import type { ScaleDef } from '../src/music/scales';
 import { freqToMidi, midiToFreq, snapMidiToPitchClass } from '../src/music/notes';
 import { quantizeMidiToScale } from '../src/music/quantize';
 
+const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
+
 class AudioEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-  private limiterNode: DynamicsCompressorNode | null = null; 
-  private analyser: AnalyserNode | null = null; 
+  private compressorNode: DynamicsCompressorNode | null = null;
+  private makeupGain: GainNode | null = null;
+  private limiterNode: DynamicsCompressorNode | null = null;
+  private mainAnalyser: AnalyserNode | null = null;
+  private peakAnalyser: AnalyserNode | null = null;
   
   private reverbNode: ConvolverNode | null = null;
   private reverbGain: GainNode | null = null;
@@ -59,16 +64,31 @@ class AudioEngine {
       latencyHint: 'interactive',
     });
     
-    // Analyser
-    this.analyser = this.ctx.createAnalyser();
-    this.analyser.fftSize = 256; 
-    this.analyser.smoothingTimeConstant = 0.6; 
+    // Analysers
+    this.mainAnalyser = this.ctx.createAnalyser();
+    this.mainAnalyser.fftSize = 256;
+    this.mainAnalyser.smoothingTimeConstant = 0.6;
+    this.peakAnalyser = this.ctx.createAnalyser();
+    this.peakAnalyser.fftSize = 256;
+    this.peakAnalyser.smoothingTimeConstant = 0.6;
 
-    // TRANSPARENT LIMITER (Safety net)
+    // Compressor (musical)
+    this.compressorNode = this.ctx.createDynamicsCompressor();
+    this.compressorNode.ratio.value = 3;
+    this.compressorNode.attack.value = 0.0001; // 0.10ms
+    this.compressorNode.release.value = 0.5;   // 500ms
+    this.compressorNode.knee.value = 6;
+    // Threshold auto-tuned in getPeakLevel
+
+    // Make-up gain to target output (-10 LUFS approx)
+    this.makeupGain = this.ctx.createGain();
+    this.makeupGain.gain.value = 1;
+
+    // LIMITER (True peak safety)
     this.limiterNode = this.ctx.createDynamicsCompressor();
-    this.limiterNode.threshold.value = -1.0; 
-    this.limiterNode.knee.value = 10; 
-    this.limiterNode.ratio.value = 20; 
+    this.limiterNode.threshold.value = -1.0;
+    this.limiterNode.knee.value = 10;
+    this.limiterNode.ratio.value = 20;
     this.limiterNode.attack.value = 0.002;
     this.limiterNode.release.value = 0.2;
 
@@ -125,11 +145,13 @@ class AudioEngine {
 
     this.lowEQ.connect(this.midEQ);
     this.midEQ.connect(this.highEQ);
-    this.highEQ.connect(this.masterGain);
-    
-    this.masterGain.connect(this.limiterNode);
-    this.limiterNode.connect(this.analyser);
-    this.analyser.connect(this.ctx.destination);
+    this.highEQ.connect(this.limiterNode);
+    this.limiterNode.connect(this.peakAnalyser);
+    this.peakAnalyser.connect(this.compressorNode);
+    this.compressorNode.connect(this.makeupGain);
+    this.makeupGain.connect(this.mainAnalyser);
+    this.mainAnalyser.connect(this.masterGain);
+    this.masterGain.connect(this.ctx.destination);
 
     this.installLifecycle();
     this.installGestureUnlock();
@@ -137,17 +159,39 @@ class AudioEngine {
     try { await this.ctx.resume(); } catch { /* ignore */ }
   }
 
-  public getPeakLevel(): number {
-    if (!this.analyser) return -100;
-    const data = new Float32Array(this.analyser.fftSize);
-    this.analyser.getFloatTimeDomainData(data);
-    
+  private static extractPeakDb(analyser: AnalyserNode | null): number {
+    if (!analyser) return -100;
+    const data = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(data);
     let max = 0;
-    for(let i = 0; i < data.length; i++) {
-        if(Math.abs(data[i]) > max) max = Math.abs(data[i]);
+    for (let i = 0; i < data.length; i++) {
+      const v = Math.abs(data[i]);
+      if (v > max) max = v;
     }
     if (max === 0) return -100;
     return 20 * Math.log10(max);
+  }
+
+  private tuneCompressor(peakDb: number) {
+    if (!this.compressorNode || !this.makeupGain) return;
+    // Threshold follows recent peak so we always shave the crest
+    const targetPeak = -10; // approx LUFS target
+    const threshold = Math.min(-1, peakDb - 6); // below max peak
+    this.compressorNode.threshold.setTargetAtTime(threshold, this.ctx!.currentTime, 0.05);
+    // Simple auto-makeup to push toward targetPeak
+    const gainDb = targetPeak - peakDb;
+    const lin = Math.pow(10, gainDb / 20);
+    this.makeupGain.gain.setTargetAtTime(clamp(lin, 0.25, 6), this.ctx!.currentTime, 0.05);
+  }
+
+  public getMainLevel(): number {
+    return AudioEngine.extractPeakDb(this.mainAnalyser);
+  }
+
+  public getPeakLevel(): number {
+    const peakDb = AudioEngine.extractPeakDb(this.peakAnalyser);
+    this.tuneCompressor(peakDb);
+    return peakDb;
   }
 
   public async resume(): Promise<void> {

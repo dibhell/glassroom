@@ -13,7 +13,8 @@ interface MixerProps {
 
 export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, onPlayPause, onStop }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const vuCanvasRef = useRef<HTMLCanvasElement>(null);
+  const peakCanvasRef = useRef<HTMLCanvasElement>(null);
+  const mainCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
 
   const handleEQChange = (band: 'low' | 'mid' | 'high', val: number) => {
@@ -29,41 +30,31 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   };
 
   useEffect(() => {
-    if (!vuCanvasRef.current) return;
-    const ctx = vuCanvasRef.current.getContext('2d');
-    if (!ctx) return;
+    const peakCtx = peakCanvasRef.current?.getContext('2d');
+    const mainCtx = mainCanvasRef.current?.getContext('2d');
+    if (!peakCtx || !mainCtx) return;
 
     const drawVU = () => {
-      const db = audioService.getPeakLevel();
-      const width = ctx.canvas.width;
-      const height = ctx.canvas.height;
-      
-      // Clear
-      ctx.clearRect(0, 0, width, height);
-      
-      // VU Meter Background
-      ctx.fillStyle = 'rgba(185, 188, 183, 0.3)';
-      ctx.fillRect(0, 0, width, height);
+      const renderVU = (ctx: CanvasRenderingContext2D, db: number) => {
+        const width = ctx.canvas.width;
+        const height = ctx.canvas.height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = 'rgba(185, 188, 183, 0.3)';
+        ctx.fillRect(0, 0, width, height);
+        const minDb = -40;
+        const maxDb = 0;
+        const percent = Math.min(1, Math.max(0, (db - minDb) / (maxDb - minDb)));
+        let color = '#7A8476';
+        if (db > -1.5) color = '#3F453F';
+        const barHeight = height * percent;
+        ctx.fillStyle = color;
+        ctx.fillRect(0, height - barHeight, width, barHeight);
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        for (let i = 1; i < 10; i++) ctx.fillRect(0, height * (i / 10), width, 1);
+      };
 
-      const minDb = -40;
-      const maxDb = 0;
-      const percent = Math.min(1, Math.max(0, (db - minDb) / (maxDb - minDb)));
-      
-      // Colors from Palette
-      let color = '#7A8476'; 
-      if (db > -0.5) color = '#3F453F'; 
-
-      const barHeight = height * percent;
-      
-      // Draw Bar
-      ctx.fillStyle = color;
-      ctx.fillRect(0, height - barHeight, width, barHeight);
-
-      // Ticks
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      for(let i=1; i<10; i++) {
-          ctx.fillRect(0, height * (i/10), width, 1);
-      }
+      renderVU(peakCtx, audioService.getPeakLevel());
+      renderVU(mainCtx, audioService.getMainLevel());
 
       animationRef.current = requestAnimationFrame(drawVU);
     };
@@ -117,17 +108,21 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         {/* SECTION 2: VOLUME */}
         <div className="flex items-end gap-6 px-4 h-full pb-0 md:pb-4">
              {/* Use a grid to ensure perfect horizontal alignment of tops and bottoms */}
-             <div className="grid grid-cols-2 gap-x-6 gap-y-1 h-32 items-end">
-                
+             <div className="grid grid-cols-3 gap-x-6 gap-y-1 h-32 items-end">
                 {/* Headers */}
                 <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Peak</div>
-                <div className="text-[10px] font-bold text-center uppercase tracking-wider mb-auto pt-1">Main</div>
+                <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Main</div>
+                <div className="text-[10px] font-bold text-center uppercase tracking-wider mb-auto pt-1">Level</div>
 
-                {/* Meter & Slider - FIXED HEIGHT to ensure flush alignment */}
-                <div className="h-24 flex justify-center">
-                    <canvas ref={vuCanvasRef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
+                {/* Peak meter */}
+                <div className="h-24 flex justify-center items-end">
+                  <canvas ref={peakCanvasRef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
                 </div>
-                
+                {/* Main meter */}
+                <div className="h-24 flex justify-center items-end">
+                  <canvas ref={mainCanvasRef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
+                </div>
+                {/* Volume slider */}
                 <div className="h-24 flex justify-center relative w-8">
                      <div className="absolute inset-y-0 w-1.5 bg-[#B9BCB7] rounded-full left-1/2 -translate-x-1/2"></div>
                      <input 
@@ -140,7 +135,6 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                         className="h-full w-6 opacity-0 cursor-pointer absolute z-10"
                         style={verticalRangeStyle}
                     />
-                     {/* Custom Thumb Visual - Simple circle that moves */}
                      <div 
                         className="absolute w-4 h-4 bg-[#7A8476] rounded-full shadow-sm left-1/2 -translate-x-1/2 pointer-events-none transition-transform duration-75"
                         style={{ bottom: `calc(${settings.volume * 100}% - 8px)` }}
@@ -149,8 +143,8 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
 
                 {/* Footers */}
                 <div className="text-[8px] opacity-60 text-center">dB</div>
+                <div className="text-[8px] opacity-60 text-center">dB</div>
                 <div className="text-[9px] text-center">{(settings.volume * 100).toFixed(0)}%</div>
-
              </div>
         </div>
 
