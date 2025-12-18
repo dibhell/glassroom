@@ -235,18 +235,21 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         const width = ctx.canvas.width;
         const height = ctx.canvas.height;
         ctx.clearRect(0, 0, width, height);
+        const top = TRACK_TOP;
+        const bottom = TRACK_BOTTOM;
+        const innerH = Math.max(1, height - top - bottom);
         ctx.fillStyle = 'rgba(185, 188, 183, 0.3)';
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, top, width, innerH);
         const minDb = -40;
         const maxDb = 0;
         const percent = Math.min(1, Math.max(0, (db - minDb) / (maxDb - minDb)));
         let color = '#7A8476';
         if (db > -1.5) color = '#3F453F';
-        const barHeight = height * percent;
+        const barHeight = innerH * percent;
         ctx.fillStyle = color;
-        ctx.fillRect(0, height - barHeight, width, barHeight);
+        ctx.fillRect(0, top + (innerH - barHeight), width, barHeight);
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        for (let i = 1; i < 10; i++) ctx.fillRect(0, height * (i / 10), width, 1);
+        for (let i = 1; i < 10; i++) ctx.fillRect(0, top + innerH * (i / 10), width, 1);
       };
 
       renderVU(peakCtx, audioService.getPeakLevel());
@@ -275,7 +278,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         <Sliders size={12} /> MASTER CONTROL
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.15fr_0.85fr_0.95fr_0.95fr_1.10fr]">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.10fr_0.70fr_0.90fr_0.90fr_1.40fr]">
         {/* TRANSPORT */}
         <div className="min-w-0 bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-4">
           <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">Transport</div>
@@ -305,8 +308,8 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         {/* MIC */}
         <div className="min-w-0 bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-2">
           <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">Mic</div>
-          <div className="flex items-center justify-center gap-4 h-[200px]">
-            <div className="flex flex-col items-center gap-1">
+          <div className="grid grid-cols-2 items-center justify-center gap-3 h-[200px]">
+            <div className="w-16 flex flex-col items-center gap-1">
               <span className="text-[8px] uppercase opacity-60">Gain</span>
               <Fader
                 value={micGain}
@@ -318,9 +321,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                   audioService.setMicGain(v);
                 }}
               />
-              <span className="text-[9px] opacity-60">{(micGain * 25).toFixed(0)}%</span>
+              <span className="text-[9px] opacity-60 w-10 text-center">{(micGain * 25).toFixed(0)}%</span>
             </div>
-            <div className="flex flex-col items-center gap-1">
+            <div className="w-16 flex flex-col items-center gap-1">
               <span className="text-[8px] uppercase opacity-60">VU</span>
               <canvas ref={micVURef} width={10} height={FADER_HEIGHT} className="rounded-sm bg-black/5 h-[180px] w-2.5" />
               <span className="text-[9px] opacity-60">dB</span>
@@ -331,18 +334,18 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         {/* OUT */}
         <div className="min-w-0 bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-3">
           <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">Out</div>
-          <div className="flex items-end justify-center gap-4 h-[200px]">
-            <div className="flex flex-col items-center gap-1">
+          <div className="grid grid-cols-3 items-end justify-center gap-3 h-[200px]">
+            <div className="w-16 flex flex-col items-center gap-1">
               <span className="text-[8px] uppercase opacity-60">Peak</span>
               <canvas ref={peakCanvasRef} width={10} height={FADER_HEIGHT} className="rounded-sm bg-black/5 h-[180px] w-2.5" />
               <span className="text-[9px] opacity-60">dB</span>
             </div>
-            <div className="flex flex-col items-center gap-1">
+            <div className="w-16 flex flex-col items-center gap-1">
               <span className="text-[8px] uppercase opacity-60">Main</span>
               <canvas ref={mainCanvasRef} width={10} height={FADER_HEIGHT} className="rounded-sm bg-black/5 h-[180px] w-2.5" />
               <span className="text-[9px] opacity-60">dB</span>
             </div>
-            <div className="flex flex-col items-center gap-1">
+            <div className="w-16 flex flex-col items-center gap-1">
               <span className="text-[8px] uppercase opacity-60">Level</span>
               <Fader
                 value={settings.volume}
@@ -351,7 +354,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                 defaultValue={0.7}
                 onChange={(v) => setSettings(p => ({ ...p, volume: v }))}
               />
-              <span className="text-[9px] opacity-60">{(settings.volume * 100).toFixed(0)}%</span>
+              <span className="text-[9px] opacity-60 w-10 text-center">{(settings.volume * 100).toFixed(0)}%</span>
             </div>
           </div>
         </div>
@@ -359,9 +362,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         {/* EQ */}
         <div className="min-w-0 bg-[#E4E5E2] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-2 shadow-inner">
           <div className="text-[10px] uppercase tracking-widest text-[#7A8476] text-center">EQ</div>
-          <div className="flex items-end justify-center gap-4 h-[200px]">
+          <div className="grid grid-cols-3 items-end justify-center gap-3 h-[200px]">
             {['low', 'mid', 'high'].map((band) => (
-              <div key={band} className="flex flex-col items-center gap-1">
+              <div key={band} className="w-16 flex flex-col items-center gap-1">
                 <span className="text-[8px] uppercase opacity-60">{band}</span>
                 <Fader
                   value={settings[band as keyof AudioSettings] as number}
@@ -370,7 +373,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                   defaultValue={0}
                   onChange={(v) => handleEQChange(band as any, v)}
                 />
-                <span className="text-[9px] opacity-60">{(settings[band as keyof AudioSettings] as number).toFixed(1)}dB</span>
+                <span className="text-[9px] opacity-60 w-14 text-center">{(settings[band as keyof AudioSettings] as number).toFixed(1)}dB</span>
               </div>
             ))}
           </div>
@@ -382,7 +385,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
           <div className="flex justify-center">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full max-w-[240px] flex items-center justify-center gap-2 px-4 py-3 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm"
+              className="w-full max-w-[260px] flex items-center justify-center gap-2 px-4 py-3 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm"
             >
               <Upload size={12} />
               Load Sample
@@ -396,43 +399,44 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="w-full max-w-[260px] mx-auto grid grid-cols-3 gap-2">
             <button
-              className={`px-3 py-1 rounded-full text-[10px] uppercase border ${sourceMode === 'mic' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'} ${!micAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full px-2 py-1 rounded-md text-[10px] uppercase border ${sourceMode === 'mic' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'} ${!micAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => selectSource('mic')}
             >
               Mic
             </button>
             <button
-              className={`px-3 py-1 rounded-full text-[10px] uppercase border ${sourceMode === 'synth' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'}`}
+              className={`w-full px-2 py-1 rounded-md text-[10px] uppercase border ${sourceMode === 'synth' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'}`}
               onClick={() => selectSource('synth')}
             >
               Synth
             </button>
             <button
-              className={`px-3 py-1 rounded-full text-[10px] uppercase border ${sourceMode === 'sample' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'} ${!sampleAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full px-2 py-1 rounded-md text-[10px] uppercase border ${sourceMode === 'sample' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'} ${!sampleAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => selectSource('sample')}
             >
               Sample
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="w-full max-w-[260px] mx-auto grid grid-cols-3 gap-2">
             <button
               onClick={handleClearMic}
-              className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-2 px-2 py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
               disabled={!micAvailable}
             >
               <XCircle size={12} />
-              Clear Mic
+              Clear
             </button>
+            <div />
             <button
               onClick={handleClearSample}
-              className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-2 px-2 py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
               disabled={!sampleAvailable}
             >
               <XCircle size={12} />
-              Clear Sample
+              Clear
             </button>
           </div>
 
