@@ -63,6 +63,15 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
     const fpsRef = useRef({ last: performance.now(), acc: 0, frames: 0, fps: 0 });
     const perfRef = useRef({ recovering: false, lockUntilHighFps: false });
     const visibilityRef = useRef<boolean>(typeof document !== 'undefined' ? document.visibilityState === 'hidden' : false);
+    const grabRef = useRef<{
+      id: string | null;
+      pointerId: number | null;
+      offsetX: number;
+      offsetY: number;
+      lastX: number;
+      lastY: number;
+      lastT: number;
+    }>({ id: null, pointerId: null, offsetX: 0, offsetY: 0, lastX: 0, lastY: 0, lastT: performance.now() });
 
     // Matrix Log Buffer
     const logRef = useRef<string[]>([]);
@@ -212,22 +221,103 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       pushLog(`SPAWN: ${id} <R:${Math.round(radius)}>`);
     };
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-      if (!containerRef.current) return;
+    const project2D = (b: BubbleExt, w: number, h: number) => {
+      const scale = FOCAL_LENGTH / (FOCAL_LENGTH + b.z);
+      const cx = w / 2; const cy = h / 2;
+      return {
+        x: (b.x - cx) * scale + cx,
+        y: (b.y - cy) * scale + cy,
+        r: b.radius * scale,
+        scale,
+      };
+    };
+
+    const screenToWorld = (sx: number, sy: number, z: number, w: number, h: number) => {
+      const cx = w / 2; const cy = h / 2;
+      const scale = FOCAL_LENGTH / (FOCAL_LENGTH + z);
+      return {
+        x: ((sx - cx) / scale) + cx,
+        y: ((sy - cy) / scale) + cy,
+      };
+    };
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+      if (!containerRef.current || !canvasRef.current) return;
+      e.preventDefault();
       const rect = containerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
+
+      // hit test bubbles (topmost)
+      const bubbles = bubblesRef.current;
+      let hit: BubbleExt | null = null;
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const p = project2D(bubbles[i], canvasRef.current.width, canvasRef.current.height);
+        const dx = x - p.x; const dy = y - p.y;
+        if (dx * dx + dy * dy <= p.r * p.r) { hit = bubbles[i]; break; }
+      }
+
+      if (hit) {
+        grabRef.current = {
+          id: hit.id,
+          pointerId: e.pointerId,
+          offsetX: x - project2D(hit, canvasRef.current.width, canvasRef.current.height).x,
+          offsetY: y - project2D(hit, canvasRef.current.width, canvasRef.current.height).y,
+          lastX: x,
+          lastY: y,
+          lastT: performance.now(),
+        };
+        isDrawingRef.current = false;
+        lastSpawnPos.current = null;
+        try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+        return;
+      }
+
       isDrawingRef.current = true;
       lastSpawnPos.current = { x, y };
       spawnBubble(x, y, 50);
+      try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* ignore */ }
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-      if (!isDrawingRef.current || !containerRef.current) return;
+    const handlePointerMove = (e: React.PointerEvent) => {
+      if (!containerRef.current || !canvasRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
+      // dragging existing bubble
+      if (grabRef.current.id && grabRef.current.pointerId === e.pointerId) {
+        const b = bubblesRef.current.find(bb => bb.id === grabRef.current.id);
+        if (b) {
+          const { offsetX, offsetY, lastX, lastY, lastT } = grabRef.current;
+          const now = performance.now();
+          const dt = Math.max(1, now - lastT);
+          const prevPos = { x: lastX, y: lastY };
+          grabRef.current.lastX = x;
+          grabRef.current.lastY = y;
+          grabRef.current.lastT = now;
+
+          const world = screenToWorld(x - offsetX, y - offsetY, b.z, canvasRef.current.width, canvasRef.current.height);
+          b.x = world.x;
+          b.y = world.y;
+
+          const vx = (x - prevPos.x) / dt * 16;
+          const vy = (y - prevPos.y) / dt * 16;
+          b.vx = vx;
+          b.vy = vy;
+
+          const speed = Math.sqrt(vx * vx + vy * vy);
+          if (speed > 0.1) {
+            const nx = vx / (speed || 1);
+            const ny = vy / (speed || 1);
+            applyJellyImpact(b, nx, ny, speed * 0.6);
+          }
+        }
+        return;
+      }
+
+      // spawn-draw mode
+      if (!isDrawingRef.current || !containerRef.current) return;
       if (lastSpawnPos.current) {
         const dx = x - lastSpawnPos.current.x;
         const dy = y - lastSpawnPos.current.y;
@@ -239,9 +329,14 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       }
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = (e: React.PointerEvent) => {
+      if (!canvasRef.current) return;
+      if (grabRef.current.id && grabRef.current.pointerId === e.pointerId) {
+        grabRef.current = { id: null, pointerId: null, offsetX: 0, offsetY: 0, lastX: 0, lastY: 0, lastT: performance.now() };
+      }
       isDrawingRef.current = false;
       lastSpawnPos.current = null;
+      try { canvasRef.current.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
     };
 
     const triggerBubbleSound = (b: BubbleExt, triggerType: string) => {
@@ -977,11 +1072,12 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       >
         <canvas
           ref={canvasRef}
-          className="block w-full h-full"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          className="block w-full h-full touch-none"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         />
       </div>
     );
