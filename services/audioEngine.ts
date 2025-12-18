@@ -14,6 +14,9 @@ class AudioEngine {
   private limiterNode: DynamicsCompressorNode | null = null;
   private mainAnalyser: AnalyserNode | null = null;
   private peakAnalyser: AnalyserNode | null = null;
+  private micGain: GainNode | null = null;
+  private micMeter: AnalyserNode | null = null;
+  private micStream: MediaStream | null = null;
   
   private reverbNode: ConvolverNode | null = null;
   private reverbGain: GainNode | null = null;
@@ -34,6 +37,9 @@ class AudioEngine {
 
   private customBuffer: AudioBuffer | null = null;
   private soundType: SoundType = SoundType.SYNTH;
+  private micGain: GainNode | null = null;
+  private micMeter: AnalyserNode | null = null;
+  private micStream: MediaStream | null = null;
 
   // Polyphony Management
   private activeVoices: number = 0;
@@ -71,6 +77,12 @@ class AudioEngine {
     this.peakAnalyser = this.ctx.createAnalyser();
     this.peakAnalyser.fftSize = 256;
     this.peakAnalyser.smoothingTimeConstant = 0.6;
+    this.micMeter = this.ctx.createAnalyser();
+    this.micMeter.fftSize = 1024;
+    this.micMeter.smoothingTimeConstant = 0.65;
+    this.micMeter = this.ctx.createAnalyser();
+    this.micMeter.fftSize = 1024;
+    this.micMeter.smoothingTimeConstant = 0.65;
 
     // Compressor (musical)
     this.compressorNode = this.ctx.createDynamicsCompressor();
@@ -94,6 +106,28 @@ class AudioEngine {
     // Master Gain - Boosted significantly
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 1.0; 
+
+    // Mic chain (muted to master, for metering only)
+    this.micGain = this.ctx.createGain();
+    this.micGain.gain.value = 0;
+    const micSilent = this.ctx.createGain();
+    micSilent.gain.value = 0;
+    if (this.micMeter) {
+      this.micGain.connect(this.micMeter);
+      this.micMeter.connect(micSilent);
+      micSilent.connect(this.ctx.destination);
+    }
+
+    // Mic chain (muted to master, for metering only)
+    this.micGain = this.ctx.createGain();
+    this.micGain.gain.value = 0;
+    const micSilent = this.ctx.createGain();
+    micSilent.gain.value = 0;
+    if (this.micMeter) {
+      this.micGain.connect(this.micMeter);
+      this.micMeter.connect(micSilent);
+      micSilent.connect(this.ctx.destination);
+    }
 
     // EQ
     this.lowEQ = this.ctx.createBiquadFilter();
@@ -508,6 +542,42 @@ class AudioEngine {
     } catch (e) {
       console.error("Failed to load sample from blob", e);
     }
+  }
+
+  public setMicGain(value: number) {
+    if (!this.ctx || !this.micGain) return;
+    const safe = Math.max(0, Math.min(4, value));
+    this.micGain.gain.setTargetAtTime(safe, this.ctx.currentTime, 0.05);
+  }
+
+  public async ensureMic() {
+    if (!this.ctx) return;
+    if (this.micStream) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.micStream = stream;
+      const src = this.ctx.createMediaStreamSource(stream);
+      if (!this.micGain) {
+        this.micGain = this.ctx.createGain();
+        this.micGain.gain.value = 0;
+      }
+      src.connect(this.micGain);
+    } catch (e) {
+      console.error('Mic access failed', e);
+    }
+  }
+
+  public getMicLevelDb(): number {
+    if (!this.micMeter) return -120;
+    const data = new Uint8Array(this.micMeter.frequencyBinCount);
+    this.micMeter.getByteTimeDomainData(data);
+    let peak = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = (data[i] - 128) / 128;
+      peak = Math.max(peak, Math.abs(v));
+    }
+    const db = 20 * Math.log10(peak || 1e-5);
+    return db;
   }
 
   public clearSample() {
