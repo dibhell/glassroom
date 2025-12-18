@@ -62,6 +62,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
     const isPlayingRef = useRef<boolean>(isPlaying);
     const fpsRef = useRef({ last: performance.now(), acc: 0, frames: 0, fps: 0 });
     const perfRef = useRef({ recovering: false, lockUntilHighFps: false });
+    const visibilityRef = useRef<boolean>(typeof document !== 'undefined' ? document.visibilityState === 'hidden' : false);
 
     // Matrix Log Buffer
     const logRef = useRef<string[]>([]);
@@ -74,6 +75,11 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
     useEffect(() => { audioSettingsRef.current = audioSettings; }, [audioSettings]);
     useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
     useEffect(() => { musicSettingsRef.current = musicSettings; }, [musicSettings]);
+    useEffect(() => {
+      const onVis = () => { visibilityRef.current = document.visibilityState === 'hidden'; };
+      document.addEventListener('visibilitychange', onVis);
+      return () => document.removeEventListener('visibilitychange', onVis);
+    }, []);
 
     useImperativeHandle(ref, () => ({
       reset: () => {
@@ -629,6 +635,16 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         fpsState.last = now;
         fpsState.acc += dt;
         fpsState.frames += 1;
+        const hiddenOrThrottled = visibilityRef.current || dt > 300;
+        if (hiddenOrThrottled) {
+          fpsState.acc = 0;
+          fpsState.frames = 0;
+          fpsState.fps = 60;
+          perfRef.current.recovering = false;
+          perfRef.current.lockUntilHighFps = false;
+          requestRef.current = requestAnimationFrame(animate);
+          return;
+        }
         if (fpsState.acc >= 500) {
           fpsState.fps = (fpsState.frames / fpsState.acc) * 1000;
           fpsState.acc = 0;
