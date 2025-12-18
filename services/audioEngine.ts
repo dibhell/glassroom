@@ -37,9 +37,6 @@ class AudioEngine {
 
   private customBuffer: AudioBuffer | null = null;
   private soundType: SoundType = SoundType.SYNTH;
-  private micGain: GainNode | null = null;
-  private micMeter: AnalyserNode | null = null;
-  private micStream: MediaStream | null = null;
 
   // Polyphony Management
   private activeVoices: number = 0;
@@ -106,17 +103,6 @@ class AudioEngine {
     // Master Gain - Boosted significantly
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 1.0; 
-
-    // Mic chain (muted to master, for metering only)
-    this.micGain = this.ctx.createGain();
-    this.micGain.gain.value = 0;
-    const micSilent = this.ctx.createGain();
-    micSilent.gain.value = 0;
-    if (this.micMeter) {
-      this.micGain.connect(this.micMeter);
-      this.micMeter.connect(micSilent);
-      micSilent.connect(this.ctx.destination);
-    }
 
     // Mic chain (muted to master, for metering only)
     this.micGain = this.ctx.createGain();
