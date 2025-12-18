@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { AudioSettings } from '../types';
-import { Play, Pause, Square, Upload, Sliders } from 'lucide-react';
+import { Play, Pause, Square, Upload, Sliders, Circle } from 'lucide-react';
 import { audioService } from '../services/audioEngine';
 import { BufferedKnob } from './BufferedKnob';
 
@@ -17,6 +17,11 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   const peakCanvasRef = useRef<HTMLCanvasElement>(null);
   const mainCanvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recorderChunks = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recorderTimerRef = useRef<number | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   const handleEQChange = (band: 'low' | 'mid' | 'high', val: number) => {
     // Val is 0-100 from range input, map to -10 to 10 dB
@@ -27,6 +32,51 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       audioService.loadSample(e.target.files[0]);
+    }
+  };
+
+  const handleRecordToggle = async () => {
+    if (isRecording && recorderRef.current) {
+      recorderRef.current.stop();
+      if (recorderTimerRef.current) {
+        clearTimeout(recorderTimerRef.current);
+        recorderTimerRef.current = null;
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const rec = new MediaRecorder(stream);
+      recorderRef.current = rec;
+      recorderChunks.current = [];
+
+      rec.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) recorderChunks.current.push(ev.data);
+      };
+      rec.onstop = async () => {
+        const blob = new Blob(recorderChunks.current, { type: 'audio/webm' });
+        recorderChunks.current = [];
+        stream.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        if (recorderTimerRef.current) {
+          clearTimeout(recorderTimerRef.current);
+          recorderTimerRef.current = null;
+        }
+        await audioService.loadSampleBlob(blob);
+      };
+
+      rec.start();
+      recorderTimerRef.current = window.setTimeout(() => {
+        if (rec.state === 'recording') {
+          rec.stop();
+        }
+      }, 10000); // hard cap 10s
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Recording failed', err);
     }
   };
 
@@ -76,7 +126,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-[#D9DBD6] border border-[#B9BCB7] rounded-3xl p-6 shadow-lg relative mt-12 mb-20 text-[#5F665F] font-mono tracking-widest select-none h-auto transition-all">
+    <div className="w-full max-w-5xl mx-auto bg-[#D9DBD6] border border-[#B9BCB7] rounded-3xl p-6 shadow-lg relative mt-6 mb-14 text-[#5F665F] font-mono tracking-widest select-none h-auto transition-all">
       
       {/* Label Top Left */}
       <div className="absolute top-4 left-6 text-[10px] text-[#7A8476] flex items-center gap-2">

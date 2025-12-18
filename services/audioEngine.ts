@@ -482,10 +482,31 @@ class AudioEngine {
     if (!this.ctx) return;
     try {
         const arrayBuffer = await file.arrayBuffer();
-        this.customBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+        const buf = await this.ctx.decodeAudioData(arrayBuffer);
+        if (buf.duration > 10.0) {
+            console.warn('Sample too long (>10s), rejecting.');
+            return;
+        }
+        this.customBuffer = buf;
         this.soundType = SoundType.SAMPLE;
     } catch (e) {
         console.error("Failed to load sample", e);
+    }
+  }
+
+  public async loadSampleBlob(blob: Blob) {
+    if (!this.ctx) return;
+    try {
+      const arrayBuffer = await blob.arrayBuffer();
+      const buf = await this.ctx.decodeAudioData(arrayBuffer);
+      if (buf.duration > 10.0) {
+        console.warn('Recorded sample too long (>10s), rejecting.');
+        return;
+      }
+      this.customBuffer = buf;
+      this.soundType = SoundType.SAMPLE;
+    } catch (e) {
+      console.error("Failed to load sample from blob", e);
     }
   }
 
