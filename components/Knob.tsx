@@ -31,7 +31,10 @@ export const Knob: React.FC<KnobProps> = ({
 
   const range = max - min;
   const normalized = Math.min(1, Math.max(0, (value - min) / range));
-  const rotation = normalized * 270 - 135; // -135 to +135
+  const startDeg = -135;
+  const sweepDeg = 270;
+  // Pointer points up by default (90deg), so subtract 90 to align to startDeg
+  const rotation = startDeg + normalized * sweepDeg - 90;
 
   const sensitivity = range / 200; // 200px for full range
 
@@ -101,8 +104,6 @@ export const Knob: React.FC<KnobProps> = ({
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - strokeWidth;
-  const startDeg = -135;
-  const sweepDeg = 270;
 
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const polar = (deg: number) => {
