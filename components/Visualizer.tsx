@@ -52,6 +52,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
     const requestRef = useRef<number | null>(null);
     const isPlayingRef = useRef<boolean>(isPlaying);
     const fpsRef = useRef({ last: performance.now(), acc: 0, frames: 0, fps: 0 });
+    const perfRef = useRef({ recovering: false, lockUntilHighFps: false });
 
     // Matrix Log Buffer
     const logRef = useRef<string[]>([]);
@@ -555,6 +556,18 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
           fpsState.frames = 0;
         }
 
+        // Performance guard: if FPS tanks below 30, enable shred + block budding until recovery to ~60
+        const perf = perfRef.current;
+        if (fpsState.fps > 55) {
+          perf.recovering = false;
+          perf.lockUntilHighFps = false;
+        } else if (fpsState.fps > 30 && !perf.lockUntilHighFps) {
+          perf.recovering = false;
+        } else if (fpsState.fps > 0 && fpsState.fps < 30) {
+          perf.recovering = true;
+          perf.lockUntilHighFps = true;
+        }
+
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = '#2E2F2B';
@@ -623,6 +636,14 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
             b.vz *= drag;
           }
 
+          // Auto shred if perf drops
+          const shredding = perfRef.current.recovering;
+          if (shredding && i < bubbles.length && Math.random() < 0.6) {
+            for (let k = 0; k < 32; k++) spawnParticle(b.x, b.y, b.z, b.color);
+            pushLog(`FPS_SHRED: ${b.id}`);
+            bubbles.splice(i, 1); i--; continue;
+          }
+
           if (fragmentation > 0 && Math.random() < fragmentation * 0.005) {
             for (let k = 0; k < 32; k++) spawnParticle(b.x, b.y, b.z, b.color);
             pushLog(`ERR_FRAG: ${b.id}`);
@@ -683,7 +704,8 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
           }
 
           // Budding (unchanged behaviour, but safer spawn offset against dist=0)
-          if (Math.random() < buddingChance * 0.05 && b.radius > 15) {
+          const effectiveBudding = perfRef.current.recovering ? 0 : buddingChance;
+          if (Math.random() < effectiveBudding * 0.05 && b.radius > 15) {
             b.radius *= 0.8;
             spawnBubble(
               b.x + (Math.random() - 0.5) * 6,
