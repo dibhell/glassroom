@@ -421,14 +421,20 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         ctx.strokeStyle = '#7A8476'; ctx.setLineDash([2, 2]); ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
 
+        const avgZ = (b1.z + b2.z) / 2;
+        const depthT = Math.min(1, Math.max(0, avgZ / DEPTH));
+        const fontSize = 10 - depthT * 3; // smaller when farther
+        const alpha = 0.9 - depthT * 0.6; // fade with depth
+
+        ctx.font = `${fontSize}px "Courier New", monospace`;
         const info = `[X:${Math.round((b1.x + b2.x) / 2)} Y:${Math.round((b1.y + b2.y) / 2)} Z:${Math.round((b1.z + b2.z) / 2)}]`;
 
         const textWidth = ctx.measureText(info).width;
-        ctx.fillStyle = 'rgba(242, 242, 240, 0.8)';
-        ctx.fillRect(mx - textWidth / 2 - 2, my - 14, textWidth + 4, 12);
+        ctx.fillStyle = `rgba(242, 242, 240, ${Math.max(0, alpha - 0.1)})`;
+        ctx.fillRect(mx - textWidth / 2 - 2, my - (fontSize + 4), textWidth + 4, fontSize + 2);
 
-        ctx.fillStyle = '#2E2F2B';
-        ctx.fillText(info, mx, my - 8);
+        ctx.fillStyle = `rgba(46, 47, 43, ${alpha})`;
+        ctx.fillText(info, mx, my - (fontSize * 0.6));
       });
       ctx.restore();
     };
