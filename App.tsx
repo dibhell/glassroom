@@ -236,6 +236,8 @@ const App: React.FC = () => {
   }, [musicSettings]);
 
   const handleStart = useCallback(async () => {
+    await audioService.primeFromGesture();
+
     const next = !isPlaying;
     setIsPlaying(next);
 
@@ -259,11 +261,8 @@ const App: React.FC = () => {
   }, []);
 
   const handleUnlockAudio = useCallback(async () => {
-    if (!hasInteracted) {
-      setHasInteracted(true);
-      await audioService.init();
-    }
-    await audioService.resume();
+    await audioService.primeFromGesture();
+    if (!hasInteracted) setHasInteracted(true);
     const state = audioService.getContextState();
     setAudioNeedsUnlock(state !== 'running');
   }, [hasInteracted]);

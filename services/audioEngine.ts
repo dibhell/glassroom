@@ -173,6 +173,11 @@ class AudioEngine {
     try { await this.ctx.suspend(); } catch { /* ignore */ }
   }
 
+  public async primeFromGesture(): Promise<void> {
+    await this.init();
+    await this.resume();
+  }
+
   public updateMusicSettings(settings: MusicSettings) {
     this.lastMusicSettings = settings;
   }
