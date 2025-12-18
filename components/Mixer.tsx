@@ -37,7 +37,7 @@ const Fader: React.FC<FaderProps> = ({ value, min, max, defaultValue, onChange, 
     lastUpAt: 0,
   });
 
-  const ratio = (value - min) / (max - min || 1);
+  const ratio = clamp((value - min) / (max - min || 1), 0, 1);
   const travel = FADER_HEIGHT - TRACK_TOP - TRACK_BOTTOM - THUMB_RADIUS * 2;
   const thumbBottom = TRACK_BOTTOM + ratio * travel;
 
@@ -125,8 +125,15 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   const [micGain, setMicGain] = useState(1);
 
   const handleEQChange = (band: 'low' | 'mid' | 'high', val: number) => {
-    const db = (val - 50) / 5;
-    setSettings(prev => ({ ...prev, [band]: db }));
+    setSettings(prev => ({ ...prev, [band]: val }));
+  };
+
+  const selectSource = (mode: 'synth' | 'mic' | 'sample') => {
+    if (mode === 'mic' && !micAvailable) return;
+    if (mode === 'sample' && !sampleAvailable) return;
+
+    setSourceMode(mode);
+    audioService.setSoundType(mode === 'synth' ? SoundType.SYNTH : SoundType.SAMPLE);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
