@@ -607,6 +607,7 @@ class AudioEngine {
     const safePan = Number.isFinite(pan) ? Math.max(-1, Math.min(1, pan)) : 0;
     const safeDepth = Number.isFinite(depth) ? depth : 0;
     const safeVolume = (Number.isFinite(volume) && volume >= 0) ? volume : 0.5;
+    const safeSampleGain = (Number.isFinite(sampleGain) && sampleGain >= 0) ? clamp(sampleGain, 0, 2) : 1;
     const safeMusic: MusicSettings = {
       root: Number.isFinite(music?.root) ? (music?.root ?? 0) : 0,
       scaleId: music?.scaleId ?? getScaleById().id,
