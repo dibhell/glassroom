@@ -27,6 +27,7 @@ import {
   Orbit,
   Fish,
 } from 'lucide-react';
+import { BufferedKnob } from './components/BufferedKnob';
 
 const VERSION = 'v1.2.2';
 const SCALE_COUNT = SCALES.length;
@@ -62,12 +63,12 @@ const KnobWithIcon: React.FC<KnobWithIconProps> = ({
   children,
 }) => (
   <div className="flex flex-col items-center gap-2 group relative w-20" title={label}>
-    <Knob
+    <BufferedKnob
       value={value}
-      onChange={onChange}
+      onCommit={onChange}
       min={0}
       max={1}
-      step={step}
+      steps={step ? Math.round(1 / step) + 1 : undefined}
       defaultValue={defaultValue}
       size={46}
       color="#7A8476"

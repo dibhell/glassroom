@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { AudioSettings } from '../types';
 import { Play, Pause, Square, Upload, Sliders } from 'lucide-react';
 import { audioService } from '../services/audioEngine';
-import { Knob } from './Knob';
+import { BufferedKnob } from './BufferedKnob';
 
 interface MixerProps {
   settings: AudioSettings;
@@ -183,9 +183,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
 
         {/* SECTION 4: Dynamics */}
         <div className="flex flex-wrap gap-4 px-4 py-4 bg-[#F2F2F0] rounded-xl border border-[#B9BCB7]/30 shadow-inner w-full md:w-auto justify-center">
-          <Knob
+          <BufferedKnob
             value={(settings.compThreshold ?? -12) as number}
-            onChange={(v) => setSettings((p) => ({ ...p, compThreshold: v }))}
+            onCommit={(v) => setSettings((p) => ({ ...p, compThreshold: v }))}
             min={-40}
             max={0}
             label="Comp Thr"
@@ -195,9 +195,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
             color="#5F665F"
             size={46}
           />
-          <Knob
+          <BufferedKnob
             value={(settings.compRatio ?? 3) as number}
-            onChange={(v) => setSettings((p) => ({ ...p, compRatio: v }))}
+            onCommit={(v) => setSettings((p) => ({ ...p, compRatio: v }))}
             min={1}
             max={12}
             label="Comp Ratio"
@@ -207,9 +207,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
             color="#5F665F"
             size={46}
           />
-          <Knob
+          <BufferedKnob
             value={(settings.compAttack ?? 0.0001) as number}
-            onChange={(v) => setSettings((p) => ({ ...p, compAttack: v }))}
+            onCommit={(v) => setSettings((p) => ({ ...p, compAttack: v }))}
             min={0.00005}
             max={0.02}
             label="Attack"
@@ -219,9 +219,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
             color="#5F665F"
             size={46}
           />
-          <Knob
+          <BufferedKnob
             value={(settings.compRelease ?? 0.5) as number}
-            onChange={(v) => setSettings((p) => ({ ...p, compRelease: v }))}
+            onCommit={(v) => setSettings((p) => ({ ...p, compRelease: v }))}
             min={0.05}
             max={1.5}
             label="Release"
@@ -231,9 +231,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
             color="#5F665F"
             size={46}
           />
-          <Knob
+          <BufferedKnob
             value={(settings.makeupGainDb ?? 0) as number}
-            onChange={(v) => setSettings((p) => ({ ...p, makeupGainDb: v }))}
+            onCommit={(v) => setSettings((p) => ({ ...p, makeupGainDb: v }))}
             min={-12}
             max={12}
             label="Makeup"
@@ -243,9 +243,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
             color="#5F665F"
             size={46}
           />
-          <Knob
+          <BufferedKnob
             value={(settings.limiterThreshold ?? -1) as number}
-            onChange={(v) => setSettings((p) => ({ ...p, limiterThreshold: v }))}
+            onCommit={(v) => setSettings((p) => ({ ...p, limiterThreshold: v }))}
             min={-12}
             max={0}
             label="Limiter"
