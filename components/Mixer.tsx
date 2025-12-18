@@ -184,6 +184,14 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
     return 'DEFAULT SYNTH';
   })();
 
+  // legacy vertical range style used by hidden inputs
+  const verticalRangeStyle: React.CSSProperties = {
+    writingMode: 'vertical-lr',
+    direction: 'rtl',
+    appearance: 'auto',
+    width: '100%',
+  };
+
   return (
     <div className="w-full max-w-5xl mx-auto bg-[#D9DBD6] border border-[#B9BCB7] rounded-3xl p-6 shadow-lg relative mt-6 mb-14 text-[#5F665F] font-mono tracking-widest select-none h-auto transition-all">
       
