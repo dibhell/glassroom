@@ -25,6 +25,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   const [sampleLoaded, setSampleLoaded] = useState<boolean>(audioService.isSampleLoaded());
   const micVURef = useRef<HTMLCanvasElement>(null);
   const [micGain, setMicGain] = useState(1);
+  const [sourceMode, setSourceMode] = useState<'mic' | 'sample'>(sampleLoaded ? 'sample' : 'mic');
 
   const handleEQChange = (band: 'low' | 'mid' | 'high', val: number) => {
     // Val is 0-100 from range input, map to -10 to 10 dB
@@ -147,128 +148,147 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         <Sliders size={12} /> MASTER CONTROL
       </div>
 
-      <div className="flex flex-col gap-6">
-        <div className="flex items-start justify-between gap-6">
-          {/* Left cluster: status/clear + transport + mic */}
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-widest text-[#7A8476]">{sampleLoaded ? 'Sample Loaded' : 'Default Synth'}</span>
-              <button 
-                onClick={handleClearSample}
-                className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
-                disabled={!sampleLoaded}
-              >
-                <XCircle size={14} />
-                Clear
-              </button>
-            </div>
-
+      <div className="flex flex-col gap-4">
+        {/* Section row */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          
+          {/* TRANSPORT */}
+          <div className="bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col items-center gap-4">
+            <div className="text-[10px] uppercase tracking-widest text-[#7A8476]">Transport</div>
             <div className="flex items-center gap-4">
               <button 
                 onClick={onPlayPause}
-                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-sm
-                  ${isPlaying ? 'bg-[#7A8476] text-[#F2F2F0]' : 'bg-[#7A8476] text-[#F2F2F0] hover:bg-[#5F665F]'}`}
+                className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-sm ${isPlaying ? 'bg-[#7A8476] text-[#F2F2F0]' : 'bg-[#7A8476] text-[#F2F2F0] hover:bg-[#5F665F]'}`}
               >
                 {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current ml-1" />}
               </button>
-              
               <button 
                 onClick={onStop}
                 className="w-16 h-16 rounded-full border border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] flex items-center justify-center hover:bg-[#B9BCB7] transition-all"
               >
                 <Square size={20} className="fill-current" />
               </button>
-
-              <button
-                onClick={handleRecordToggle}
-                className={`w-16 h-16 rounded-full border ${isRecording ? 'border-[#7A8476] bg-[#7A8476] text-[#F2F2F0]' : 'border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] hover:bg-[#B9BCB7]'} flex items-center justify-center transition-all`}
-                title={isRecording ? 'Stop recording' : 'Record sample (max 10s)'}
-              >
-                <Mic2 size={20} className="fill-current" />
-              </button>
-
-              <canvas ref={micVURef} width={6} height={96} className="rounded-sm bg-black/5 h-24 w-2" />
-            </div>
-
-            <div className="flex items-center gap-2 pl-1">
-              <span className="text-[8px] uppercase opacity-70">Mic Gain</span>
-              <input
-                type="range"
-                min="0"
-                max="4"
-                step="0.05"
-                value={micGain}
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  setMicGain(v);
-                  audioService.setMicGain(v);
-                }}
-                onPointerDown={() => audioService.ensureMic()}
-                className="w-28 accent-[#7A8476]"
-              />
             </div>
           </div>
 
-          {/* Center cluster: load + freq + sample gain */}
-          <div className="flex flex-col items-center gap-3">
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-6 py-3 md:py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm"
-            >
-              <Upload size={12} />
-              Load Sample
-            </button>
-            <input 
-              ref={fileInputRef}
-              type="file" 
-              accept="audio/*" 
-              className="hidden" 
-              onChange={handleFileUpload}
-            />
-            <div className="flex flex-col items-center gap-2">
-              <div className="flex justify-between w-44 text-[8px] opacity-70 uppercase">
-                <span>Freq</span>
-                <span>{settings.baseFrequency}Hz</span>
+          {/* SOURCE / INPUT */}
+          <div className="bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] uppercase tracking-widest text-[#7A8476]">Source / Input</div>
+              <div className="flex gap-2">
+                <button
+                  className={`px-3 py-1 rounded-full text-[10px] uppercase border ${sourceMode === 'mic' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'}`}
+                  onClick={() => setSourceMode('mic')}
+                >
+                  Mic
+                </button>
+                <button
+                  className={`px-3 py-1 rounded-full text-[10px] uppercase border ${sourceMode === 'sample' ? 'bg-[#7A8476] text-white border-[#7A8476]' : 'border-[#B9BCB7] text-[#5F665F]'} ${!sampleLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => sampleLoaded && setSourceMode('sample')}
+                >
+                  Sample
+                </button>
               </div>
-              <input 
-                type="range"
-                min="100"
-                max="880"
-                value={settings.baseFrequency}
-                onChange={(e) => setSettings(p => ({ ...p, baseFrequency: parseFloat(e.target.value) }))}
-                className="w-44 h-1 bg-[#B9BCB7] rounded-full accent-[#7A8476] cursor-pointer"
-              />
-              <div className="mt-2">
-                <BufferedKnob
-                  value={settings.sampleGain ?? 1}
-                  onCommit={(v) => setSettings(p => ({ ...p, sampleGain: v }))}
-                  min={0}
-                  max={2}
-                  defaultValue={1}
-                  size={40}
-                  color="#7A8476"
-                  format={(v) => v.toFixed(2)}
-                  label="Sample Gain"
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-[9px] uppercase text-[#7A8476]">Mic Gain</div>
+                <div className="h-40 flex justify-center relative w-10">
+                  <div className="absolute inset-y-0 w-1.5 bg-[#B9BCB7] rounded-full left-1/2 -translate-x-1/2"></div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="4"
+                    step="0.05"
+                    value={micGain}
+                    disabled={sourceMode !== 'mic'}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      setMicGain(v);
+                      audioService.setMicGain(v);
+                    }}
+                    onPointerDown={() => audioService.ensureMic()}
+                    className="h-full w-6 opacity-0 cursor-pointer absolute z-10"
+                    style={verticalRangeStyle}
+                  />
+                  <div 
+                    className="absolute w-4 h-4 bg-[#7A8476] rounded-full shadow-sm left-1/2 -translate-x-1/2 pointer-events-none transition-transform duration-75"
+                    style={{ bottom: `calc(${(micGain / 4) * 100}% - 8px)`, opacity: sourceMode === 'mic' ? 1 : 0.3 }}
+                  ></div>
+                </div>
+                <canvas ref={micVURef} width={6} height={96} className="rounded-sm bg-black/5 h-24 w-2" />
+              </div>
+
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-[9px] uppercase text-[#7A8476]">Sample Gain</div>
+                <div className="h-40 flex justify-center relative w-10">
+                  <div className="absolute inset-y-0 w-1.5 bg-[#B9BCB7] rounded-full left-1/2 -translate-x-1/2"></div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.05"
+                    value={settings.sampleGain ?? 1}
+                    disabled={sourceMode !== 'sample'}
+                    onChange={(e) => setSettings(p => ({ ...p, sampleGain: parseFloat(e.target.value) }))}
+                    className="h-full w-6 opacity-0 cursor-pointer absolute z-10"
+                    style={verticalRangeStyle}
+                  />
+                  <div 
+                    className="absolute w-4 h-4 bg-[#7A8476] rounded-full shadow-sm left-1/2 -translate-x-1/2 pointer-events-none transition-transform duration-75"
+                    style={{ bottom: `calc(${((settings.sampleGain ?? 1) / 2) * 100}% - 8px)`, opacity: sourceMode === 'sample' ? 1 : 0.3 }}
+                  ></div>
+                </div>
+                <div className="text-[10px] text-[#5F665F]">{(settings.sampleGain ?? 1).toFixed(2)}</div>
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm"
+                >
+                  <Upload size={12} />
+                  Load
+                </button>
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  accept="audio/*" 
+                  className="hidden" 
+                  onChange={handleFileUpload}
+                />
+              </div>
+
+              <div className="flex flex-col items-center gap-2 flex-1">
+                <div className="flex justify-between w-full text-[8px] opacity-70 uppercase">
+                  <span>Freq</span>
+                  <span>{settings.baseFrequency}Hz</span>
+                </div>
+                <input 
+                  type="range"
+                  min="100"
+                  max="880"
+                  value={settings.baseFrequency}
+                  onChange={(e) => setSettings(p => ({ ...p, baseFrequency: parseFloat(e.target.value) }))}
+                  className="w-full h-1 bg-[#B9BCB7] rounded-full accent-[#7A8476] cursor-pointer"
                 />
               </div>
             </div>
           </div>
 
-          {/* Right cluster: meters + level + EQ */}
-          <div className="flex items-center gap-8">
-            <div className="flex flex-col items-center gap-1">
-              <div className="grid grid-cols-3 gap-x-6 gap-y-1 h-32 items-end">
-                <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Peak</div>
-                <div className="text-[8px] opacity-60 text-center uppercase tracking-wider mb-auto pt-1">Main</div>
-                <div className="text-[10px] font-bold text-center uppercase tracking-wider mb-auto pt-1">Level</div>
-
-                <div className="h-24 flex justify-center items-end">
-                  <canvas ref={peakCanvasRef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
-                </div>
-                <div className="h-24 flex justify-center items-end">
-                  <canvas ref={mainCanvasRef} width={6} height={96} className="rounded-sm bg-black/5 h-full w-2" />
-                </div>
-                <div className="h-24 flex justify-center relative w-8">
+          {/* CHANNEL STRIP */}
+          <div className="bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col items-center gap-3">
+            <div className="text-[10px] uppercase tracking-widest text-[#7A8476]">Channel</div>
+            <div className="flex items-end gap-4">
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[8px] uppercase opacity-60">Peak</span>
+                <canvas ref={peakCanvasRef} width={10} height={140} className="rounded-sm bg-black/5 h-36 w-2.5" />
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[8px] uppercase opacity-60">Main</span>
+                <canvas ref={mainCanvasRef} width={10} height={140} className="rounded-sm bg-black/5 h-36 w-2.5" />
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-[8px] uppercase opacity-60">Level</span>
+                <div className="h-40 flex justify-center relative w-10">
                   <div className="absolute inset-y-0 w-1.5 bg-[#B9BCB7] rounded-full left-1/2 -translate-x-1/2"></div>
                   <input 
                     type="range" 
@@ -285,32 +305,34 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                     style={{ bottom: `calc(${settings.volume * 100}% - 8px)` }}
                   ></div>
                 </div>
-                <div className="text-[8px] opacity-60 text-center">dB</div>
-                <div className="text-[8px] opacity-60 text-center">dB</div>
-                <div className="text-[9px] text-center">{(settings.volume * 100).toFixed(0)}%</div>
               </div>
             </div>
+          </div>
 
-            <div className="flex gap-4 px-4 bg-[#F2F2F0] py-4 rounded-xl border border-[#B9BCB7]/30 shadow-inner h-32 items-end justify-center">
+          {/* MASTER */}
+          <div className="bg-[#E4E5E2] rounded-2xl border border-[#C7C9C5] p-4 flex flex-col items-center gap-3 shadow-inner">
+            <div className="text-[10px] uppercase tracking-widest text-[#7A8476]">Master</div>
+            <div className="flex items-end gap-4">
               {['low', 'mid', 'high'].map((band) => (
-                <div key={band} className="flex flex-col items-center gap-2 h-full justify-between">
-                  <div className="h-24 w-2.5 bg-[#D9DBD6] rounded-full relative overflow-hidden group border border-[#B9BCB7]">
-                    <div 
-                      className={`absolute bottom-0 w-full bg-[#5F665F] rounded-b-full transition-all`} 
-                      style={{ height: `${(settings[band as keyof AudioSettings] as number + 10) * 5}%` }} 
-                    />
+                <div key={band} className="flex flex-col items-center gap-1">
+                  <div className="text-[8px] uppercase opacity-60">{band}</div>
+                  <div className="h-40 flex justify-center relative w-10">
+                    <div className="absolute inset-y-0 w-2 bg-[#D9DBD6] rounded-full left-1/2 -translate-x-1/2"></div>
                     <input 
                       type="range" 
-                      min="0" 
-                      max="100" 
-                      value={(settings[band as keyof AudioSettings] as number * 5) + 50} 
+                      min="-10" 
+                      max="10" 
+                      step="0.5" 
+                      value={settings[band as keyof AudioSettings] as number}
                       onChange={(e) => handleEQChange(band as any, parseFloat(e.target.value))}
-                      onDoubleClick={() => setSettings((p) => ({ ...p, [band]: 0 }))}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      style={verticalRangeStyle} 
+                      className="h-full w-6 opacity-0 cursor-pointer absolute z-10"
+                      style={verticalRangeStyle}
                     />
+                    <div 
+                      className="absolute w-4 h-4 bg-[#5F665F] rounded-full shadow-sm left-1/2 -translate-x-1/2 pointer-events-none transition-transform duration-75"
+                      style={{ bottom: `calc(${(((settings[band as keyof AudioSettings] as number) + 10) / 20) * 100}% - 8px)` }}
+                    ></div>
                   </div>
-                  <span className="text-[8px] uppercase">{band}</span>
                 </div>
               ))}
             </div>
