@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { BufferedKnob } from './components/BufferedKnob';
 
-const VERSION = 'v1.2.3';
+const VERSION = 'v1.2.2';
 const SCALE_COUNT = SCALES.length;
 const DEFAULT_SCALE_INDEX = Math.max(0, SCALES.findIndex((scale) => scale.id === DEFAULT_SCALE_ID));
 const SCALE_STEP = SCALE_COUNT > 1 ? 1 / (SCALE_COUNT - 1) : 1;
@@ -114,7 +114,6 @@ const App: React.FC = () => {
     reverbWet: 0.3,
     baseFrequency: 440,
     pingPongWet: 0.0,
-    sampleGain: 1,
     compThreshold: -12,
     compRatio: 3,
     compAttack: 0.005,   // 5ms

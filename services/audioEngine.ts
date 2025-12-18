@@ -77,6 +77,9 @@ class AudioEngine {
     this.micMeter = this.ctx.createAnalyser();
     this.micMeter.fftSize = 1024;
     this.micMeter.smoothingTimeConstant = 0.65;
+    this.micMeter = this.ctx.createAnalyser();
+    this.micMeter.fftSize = 1024;
+    this.micMeter.smoothingTimeConstant = 0.65;
 
     // Compressor (musical)
     this.compressorNode = this.ctx.createDynamicsCompressor();
@@ -581,8 +584,7 @@ class AudioEngine {
     dopplerIntensity: number = 0,
     isReverse: boolean = false, 
     volume: number = 0.5,
-    music?: MusicSettings,
-    sampleGain: number = 1
+    music?: MusicSettings
   ) {
     if (!this.ctx) return;
     if (this.ctx.state !== 'running') {
@@ -676,7 +678,6 @@ class AudioEngine {
     finalFreq = Math.max(40, Math.min(12000, finalFreq));
 
     // --- GAIN STAGING ---
-    const safeSampleGain = Number.isFinite(sampleGain) ? sampleGain : 1;
     const baseVol = 0.25 * safeVolume; 
     
     // Use an Epsilon to prevent exponentialRampToValueAtTime errors when starting from 0
@@ -706,7 +707,7 @@ class AudioEngine {
         source.playbackRate.setValueAtTime(Math.max(0.1, Math.min(rate, 4.0)), now);
         
         // Start envelope
-        sourceGain.gain.setValueAtTime(peakVol * safeSampleGain, now);
+        sourceGain.gain.setValueAtTime(peakVol, now);
         // Exponential fade out
         sourceGain.gain.exponentialRampToValueAtTime(EPSILON, now + (this.customBuffer.duration / rate));
         
