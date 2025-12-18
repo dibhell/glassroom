@@ -203,28 +203,22 @@ export const Knob: React.FC<KnobProps> = ({
                 {/* SVG Ring */}
                 <svg width={size} height={size} className="pointer-events-none drop-shadow-sm">
                     {/* Track */}
-                    <circle
-                        cx={size/2} cy={size/2} r={r}
+                    <path
+                        d={trackPath}
                         fill="none"
                         stroke="#D9DBD6"
                         strokeWidth={strokeWidth}
-                        strokeDasharray={`${arc} ${c}`}
-                        strokeDashoffset={0}
                         strokeLinecap="round"
-                        transform={baseTransform}
                     />
                     {/* Active */}
-                    <circle
-                        cx={size/2} cy={size/2} r={r}
+                    <path
+                        d={valuePath}
                         fill="none"
                         stroke={color}
                         strokeWidth={strokeWidth}
-                        strokeDasharray={`${arc} ${c}`}
-                        strokeDashoffset={offset}
                         strokeLinecap="round"
-                        className={`transition-[stroke-dashoffset] ${isDragging ? 'duration-0' : 'duration-200 ease-out'}`}
+                        className={`transition-all ${isDragging ? 'duration-0' : 'duration-150 ease-out'}`}
                         style={{ opacity: 0.9 }}
-                        transform={baseTransform}
                     />
                 </svg>
 
