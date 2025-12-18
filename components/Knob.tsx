@@ -161,7 +161,7 @@ export function Knob({
   return (
     <div
       ref={ref}
-      className={`flex flex-col items-center gap-1 select-none touch-none ${className} ${isDragging ? 'is-dragging' : ''}`}
+      className={`flex flex-col items-center gap-1 select-none touch-none ${className}`}
       style={{
         touchAction: 'none',
         userSelect: 'none',
