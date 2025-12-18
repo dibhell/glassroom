@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { AudioSettings } from '../types';
-import { Play, Pause, Square, Upload, Sliders, Circle } from 'lucide-react';
+import { Play, Pause, Square, Upload, Sliders, Circle, Mic, XCircle } from 'lucide-react';
 import { audioService } from '../services/audioEngine';
 import { BufferedKnob } from './BufferedKnob';
 
@@ -22,6 +22,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   const streamRef = useRef<MediaStream | null>(null);
   const recorderTimerRef = useRef<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [sampleLoaded, setSampleLoaded] = useState<boolean>(audioService.isSampleLoaded());
 
   const handleEQChange = (band: 'low' | 'mid' | 'high', val: number) => {
     // Val is 0-100 from range input, map to -10 to 10 dB
@@ -31,7 +32,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      audioService.loadSample(e.target.files[0]);
+      audioService.loadSample(e.target.files[0]).then(() => setSampleLoaded(audioService.isSampleLoaded()));
     }
   };
 
@@ -66,6 +67,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
           recorderTimerRef.current = null;
         }
         await audioService.loadSampleBlob(blob);
+        setSampleLoaded(audioService.isSampleLoaded());
       };
 
       rec.start();
@@ -78,6 +80,11 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
     } catch (err) {
       console.error('Recording failed', err);
     }
+  };
+
+  const handleClearSample = () => {
+    audioService.clearSample();
+    setSampleLoaded(false);
   };
 
   useEffect(() => {
@@ -133,7 +140,7 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         <Sliders size={12} /> MASTER CONTROL
       </div>
 
-      <div className="flex flex-col md:flex-row items-center justify-between pt-8 md:pt-6 gap-8 md:gap-2">
+      <div className="flex flex-col md:flex-row items-center justify-between pt-6 md:pt-4 gap-8 md:gap-4">
         
         {/* SECTION 1: TRANSPORT */}
         <div className="flex items-center gap-4 px-4">
@@ -147,9 +154,17 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
             
             <button 
             onClick={onStop}
-            className="w-14 h-14 rounded-full border border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] flex items-center justify-center hover:bg-[#B9BCB7] transition-all"
+            className="w-16 h-16 rounded-full border border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] flex items-center justify-center hover:bg-[#B9BCB7] transition-all"
             >
             <Square size={20} className="fill-current" />
+            </button>
+
+            <button
+              onClick={handleRecordToggle}
+              className={`w-16 h-16 rounded-full border ${isRecording ? 'border-[#7A8476] bg-[#7A8476] text-[#F2F2F0]' : 'border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] hover:bg-[#B9BCB7]'} flex items-center justify-center transition-all`}
+              title={isRecording ? 'Stop recording' : 'Record sample (max 10s)'}
+            >
+              <Mic size={20} className="fill-current" />
             </button>
         </div>
 
@@ -237,14 +252,24 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         <div className="hidden" aria-hidden="true"></div>
 
         {/* SECTION 5: LOAD & FREQ */}
-        <div className="flex flex-row md:flex-col items-center justify-center gap-6 md:gap-4 px-4 w-full md:w-auto">
-             <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-6 py-3 md:py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm"
-             >
-                <Upload size={12} />
-                Load Sample
-             </button>
+        <div className="flex flex-col md:flex-col items-center justify-center gap-4 px-4 w-full md:w-auto">
+             <div className="flex items-center gap-2">
+               <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-6 py-3 md:py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm"
+               >
+                  <Upload size={12} />
+                  Load Sample
+               </button>
+               <button
+                  onClick={handleClearSample}
+                  className="flex items-center gap-2 px-3 py-3 md:py-2 bg-[#F2F2F0] border border-[#B9BCB7] rounded-lg hover:bg-white transition-all text-[10px] uppercase font-bold shadow-sm disabled:opacity-40"
+                  disabled={!sampleLoaded}
+               >
+                  <XCircle size={14} />
+                  Clear
+               </button>
+             </div>
              <input 
                 ref={fileInputRef}
                 type="file" 
@@ -252,8 +277,11 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                 className="hidden" 
                 onChange={handleFileUpload}
             />
+            <div className="text-[10px] uppercase tracking-widest text-[#7A8476]">
+              {sampleLoaded ? 'Sample loaded' : 'Default synth'}
+            </div>
 
-             <div className="w-32">
+             <div className="w-40">
                 <div className="flex justify-between text-[8px] mb-1 opacity-70">
                     <span>FREQ</span>
                     <span>{settings.baseFrequency}Hz</span>

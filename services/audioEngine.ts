@@ -510,6 +510,15 @@ class AudioEngine {
     }
   }
 
+  public clearSample() {
+    this.customBuffer = null;
+    this.soundType = SoundType.SYNTH;
+  }
+
+  public isSampleLoaded() {
+    return this.customBuffer != null && this.soundType === SoundType.SAMPLE;
+  }
+
   public triggerSound(
     sizeFactor: number, 
     baseFreq: number, 
