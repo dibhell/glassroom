@@ -24,6 +24,8 @@ import {
   Music,
   Scissors,
   Snowflake,
+  Orbit,
+  Sparkles,
 } from 'lucide-react';
 
 const VERSION = 'v1.2.2';
@@ -130,6 +132,8 @@ const App: React.FC = () => {
     magneto: 0.5,
     fragmentation: 0.0,
     freeze: 0.0,
+    geometryWarp: 0.0,
+    roomWave: 0.0,
   });
 
   const [musicSettings, setMusicSettings] = useState<MusicSettings>({
@@ -161,6 +165,8 @@ const App: React.FC = () => {
       magneto: physicsKnobs.magneto,
       fragmentation: physicsKnobs.fragmentation,
       freeze: physicsKnobs.freeze,
+      geometryWarp: physicsKnobs.geometryWarp,
+      roomWave: physicsKnobs.roomWave,
     }),
     [physicsKnobs]
   );
@@ -327,7 +333,7 @@ const App: React.FC = () => {
       )}
 
       <div className="w-full max-w-5xl relative flex-1 flex flex-col">
-        <div className="relative z-10 p-2 rounded-xl bg-[#D9DBD6] shadow-md mb-8 md:mb-12">
+        <div className="relative z-10 p-2 rounded-xl bg-[#D9DBD6] shadow-md mb-8 md:mb-12 sticky top-2 md:static">
           <Visualizer
             ref={visualizerRef}
             isPlaying={isPlaying}
@@ -346,6 +352,8 @@ const App: React.FC = () => {
             <KnobWithIcon value={physicsKnobs.freeze} onChange={(v) => setKnob('freeze', v)} icon={Snowflake} label="Freeze" defaultValue={0.0} />
             <KnobWithIcon value={physicsKnobs.reverse} onChange={(v) => setKnob('reverse', v)} icon={RotateCcw} label="Reverse" defaultValue={0.0} />
             <KnobWithIcon value={physicsKnobs.weakness} onChange={(v) => setKnob('weakness', v)} icon={Droplets} label="Weakness" defaultValue={0.0} />
+            <KnobWithIcon value={physicsKnobs.geometryWarp} onChange={(v) => setKnob('geometryWarp', v)} icon={Orbit} label="Geometry" defaultValue={0.0} />
+            <KnobWithIcon value={physicsKnobs.roomWave} onChange={(v) => setKnob('roomWave', v)} icon={Sparkles} label="Wave" defaultValue={0.0} />
           </div>
 
           <div className="relative flex flex-wrap justify-center gap-4 px-4 py-8 bg-[#F2F2F0] rounded-3xl border border-[#B9BCB7] shadow-sm w-full xl:w-auto">

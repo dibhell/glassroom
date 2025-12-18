@@ -189,19 +189,26 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
 
     // --- DRAWING FUNCTIONS ---
 
-    const drawMatrixLog = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+    const drawMatrixLog = (ctx: CanvasRenderingContext2D, w: number, h: number, metrics: { peakDb: number; baseFreq: number; objects: number }) => {
       ctx.save();
-      ctx.font = '10px "Courier New", monospace';
+      ctx.font = '8px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
 
+      // Log background panel
+      ctx.save();
+      ctx.filter = 'blur(2px)';
+      ctx.fillStyle = 'rgba(20, 26, 24, 0.6)';
+      ctx.fillRect(8, h - 150, w * 0.45, 140);
+      ctx.restore();
+
       // Background Noise (Hex Grid)
       ctx.save();
-      ctx.font = '10px "Courier New", monospace';
-      ctx.fillStyle = 'rgba(122, 132, 118, 0.08)';
-      for (let i = 20; i < w; i += 120) {
-        for (let j = 20; j < h; j += 40) {
-          if (Math.random() > 0.95) {
+      ctx.font = '8px "Courier New", monospace';
+      ctx.fillStyle = 'rgba(122, 132, 118, 0.05)';
+      for (let i = 20; i < w * 0.45; i += 100) {
+        for (let j = h - 140; j < h - 10; j += 26) {
+          if (Math.random() > 0.97) {
             const hex = `0x${Math.floor(Math.random() * 16777215).toString(16).toUpperCase()}`;
             ctx.fillText(hex, i, j);
           }
@@ -210,7 +217,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       ctx.restore();
 
       // Log Entries
-      ctx.fillStyle = '#7A8476';
+      ctx.fillStyle = 'rgba(200, 210, 205, 0.75)';
       let y = h - 20;
       for (let i = logRef.current.length - 1; i >= 0; i--) {
         ctx.fillText(logRef.current[i], 15, y);
@@ -245,24 +252,34 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         `ENTROPY   : ${phys.fragmentation.toFixed(3)}`,
         `// AUDIO_DSP`,
         `FREQ_OSC  : ${Math.round(audio.baseFrequency)}Hz`,
+        `PEAK_DB   : ${metrics.peakDb.toFixed(1)}dB`,
         `SCALE_MODE: ${scaleLabel}`,
         `VERB_MIX  : ${audio.reverbWet.toFixed(2)}`,
         `ECHO_FDBK : ${phys.pingPong.toFixed(2)}`,
         `REV_PROB  : ${phys.reverseChance.toFixed(2)}`,
         `// SYSTEM`,
-        `ACTIVE_OBJ: ${bubblesRef.current.length}`,
-        `HEAP_SIZE : ${(bubblesRef.current.length * 0.45).toFixed(2)}KB`,
+        `ACTIVE_OBJ: ${metrics.objects}`,
+        `HEAP_SIZE : ${(metrics.objects * 0.45).toFixed(2)}KB`,
       ];
 
       y = 15;
       ctx.textAlign = 'right';
 
       params.forEach(p => {
-        if (p.startsWith('//')) ctx.fillStyle = '#5F665F';
-        else ctx.fillStyle = '#7A8476';
+        if (p.startsWith('//')) ctx.fillStyle = 'rgba(122,132,118,0.6)';
+        else ctx.fillStyle = 'rgba(214, 222, 216, 0.9)';
         ctx.fillText(p, w - 15, y);
         y += 12;
       });
+
+      // Metrics overlay top-left
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(15, 18, 16, 0.5)';
+      ctx.fillRect(12, 12, 120, 42);
+      ctx.fillStyle = 'rgba(230, 236, 232, 0.9)';
+      ctx.fillText(`dB: ${metrics.peakDb.toFixed(1)}`, 18, 18);
+      ctx.fillText(`Hz: ${Math.round(metrics.baseFreq)}`, 18, 30);
+      ctx.fillText(`OBJ: ${metrics.objects}`, 18, 42);
 
       ctx.restore();
     };
@@ -277,6 +294,8 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       if (r2d < 1) return;
 
       ctx.save();
+      const blurPx = Math.min(4, Math.max(0, blurAmount));
+      if (blurPx > 0.1) ctx.filter = `blur(${blurPx}px)`;
       ctx.translate(x2d, y2d);
       ctx.rotate(b.deformation.rotation);
       ctx.scale(b.deformation.scaleX, b.deformation.scaleY);
@@ -319,7 +338,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       ctx.restore();
     };
 
-    const drawRoom = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+    const drawRoom = (ctx: CanvasRenderingContext2D, w: number, h: number, warp: number, wave: number, time: number) => {
       ctx.save();
       ctx.strokeStyle = '#B9BCB7';
       ctx.lineWidth = 0.5;
@@ -333,15 +352,56 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         };
       };
 
-      const fTL = { x: 0, y: 0, z: 0 };
-      const fTR = { x: w, y: 0, z: 0 };
-      const fBR = { x: w, y: h, z: 0 };
-      const fBL = { x: 0, y: h, z: 0 };
+      const warpAmt = warp * 0.35;
+      const waveAmt = wave * 0.25;
+      const wavePhase = time * 0.6;
 
-      const bTL = { x: -w * 0.1, y: -h * 0.1, z: DEPTH };
-      const bTR = { x: w * 1.2, y: -h * 0.05, z: DEPTH * 0.9 };
-      const bBR = { x: w * 0.9, y: h * 1.1, z: DEPTH };
-      const bBL = { x: -w * 0.05, y: h * 1.05, z: DEPTH * 1.1 };
+      const warpOffset = (ix: number, iy: number, iz: number) => {
+        const dx = (Math.sin(wavePhase + ix * 0.5 + iy * 0.3) + 1) * 0.5;
+        const dy = (Math.cos(wavePhase * 0.7 + ix * 0.2 + iy * 0.6) + 1) * 0.5;
+        return {
+          x: (dx - 0.5) * warpAmt * w,
+          y: (dy - 0.5) * warpAmt * h,
+          z: (Math.sin(wavePhase + iz) + 1) * 0.5 * warpAmt * DEPTH * 0.3,
+        };
+      };
+
+      const baseFront = [
+        { x: 0, y: 0, z: 0 },
+        { x: w, y: 0, z: 0 },
+        { x: w, y: h, z: 0 },
+        { x: 0, y: h, z: 0 },
+      ];
+      const baseBack = [
+        { x: -w * 0.1, y: -h * 0.1, z: DEPTH },
+        { x: w * 1.2, y: -h * 0.05, z: DEPTH * 0.9 },
+        { x: w * 0.9, y: h * 1.1, z: DEPTH },
+        { x: -w * 0.05, y: h * 1.05, z: DEPTH * 1.1 },
+      ];
+
+      const fTL = baseFront[0];
+      const fTR = baseFront[1];
+      const fBR = baseFront[2];
+      const fBL = baseFront[3];
+
+      const bTL = baseBack[0];
+      const bTR = baseBack[1];
+      const bBR = baseBack[2];
+      const bBL = baseBack[3];
+
+      [fTL, fTR, fBR, fBL].forEach((p, idx) => {
+        const wv = wave > 0 ? waveAmt * Math.sin(wavePhase + idx * 0.6) : 0;
+        p.x += (idx === 0 ? -1 : idx === 1 ? 1 : 0) * warpAmt * w * 0.2;
+        p.y += (idx === 0 ? -1 : idx === 3 ? 1 : 0) * warpAmt * h * 0.15;
+        p.z += wv * DEPTH * 0.1;
+      });
+      [bTL, bTR, bBR, bBL].forEach((p, idx) => {
+        const offs = warpOffset(idx, idx * 0.3, idx * 0.5);
+        const wv = wave > 0 ? waveAmt * Math.sin(wavePhase + idx * 0.8 + 1.2) : 0;
+        p.x += offs.x;
+        p.y += offs.y;
+        p.z += offs.z + wv * DEPTH * 0.2;
+      });
 
       ctx.strokeStyle = 'rgba(185, 188, 183, 0.15)';
       const gridSteps = 5;
@@ -444,8 +504,13 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         ctx.fillStyle = gradientBack;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        drawMatrixLog(ctx, canvas.width, canvas.height);
-        drawRoom(ctx, canvas.width, canvas.height);
+        const peakDb = audioService.getPeakLevel();
+        drawMatrixLog(ctx, canvas.width, canvas.height, {
+          peakDb,
+          baseFreq: audio.baseFrequency,
+          objects: bubblesRef.current.length,
+        });
+        drawRoom(ctx, canvas.width, canvas.height, physicsRef.current.geometryWarp, physicsRef.current.roomWave, time);
 
         const phys = physicsRef.current;
         const bubbles = bubblesRef.current;

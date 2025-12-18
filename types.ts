@@ -24,6 +24,8 @@ export interface PhysicsSettings {
   magneto: number; // 0 to 1 (Magnetic force intensity)
   fragmentation: number; // 0 to 1 (Chance to shatter into particles)
   freeze: number; // 0 to 1 (Viscosity/Freezing effect)
+  geometryWarp: number; // 0 to 1 (Room geometry distortion)
+  roomWave: number; // 0 to 1 (Room wave animation)
 }
 
 export interface MusicSettings {
