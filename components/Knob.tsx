@@ -59,9 +59,15 @@ export function Knob({
 
   const norm = useMemo(() => clamp((value - min) / (max - min || 1), 0, 1), [value, min, max]);
 
-  const startDeg = -135;
+  const startDeg = 225; // 0.0 = bottom-left-ish
   const sweepDeg = 270;
-  const rotation = startDeg + norm * sweepDeg;
+  const cw = true;
+
+  const angleDegFromValue = (t: number) => {
+    const v = clamp(t, 0, 1);
+    return cw ? startDeg + v * sweepDeg : startDeg - v * sweepDeg;
+  };
+  const angleDeg = angleDegFromValue(norm);
 
   const strokeWidth = size * 0.1;
   const cx = size / 2;
@@ -73,18 +79,11 @@ export function Knob({
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
   };
 
+  const endDeg = cw ? startDeg + sweepDeg : startDeg - sweepDeg;
   const trackStart = polar(startDeg);
-  const trackEnd = polar(startDeg + sweepDeg);
-  const trackLargeArc = sweepDeg > 180 ? 1 : 0;
-  const trackPath = `M ${trackStart.x} ${trackStart.y} A ${r} ${r} 0 ${trackLargeArc} 1 ${trackEnd.x} ${trackEnd.y}`;
-
-  const valueDeg = startDeg + sweepDeg * norm;
-  const valueEnd = polar(valueDeg);
-  const valueLargeArc = valueDeg - startDeg > 180 ? 1 : 0;
-  const valuePath =
-    norm <= 0.0001
-      ? ''
-      : `M ${trackStart.x} ${trackStart.y} A ${r} ${r} 0 ${valueLargeArc} 1 ${valueEnd.x} ${valueEnd.y}`;
+  const trackEnd = polar(endDeg);
+  const trackLargeArc = Math.abs(sweepDeg) > 180 ? 1 : 0;
+  const trackPath = `M ${trackStart.x} ${trackStart.y} A ${r} ${r} 0 ${trackLargeArc} ${cw ? 1 : 0} ${trackEnd.x} ${trackEnd.y}`;
 
   const DRAG_THRESHOLD_PX = 4;
   const DOUBLE_TAP_MS = 320;
@@ -175,12 +174,32 @@ export function Knob({
     >
       <div className="relative cursor-ns-resize group touch-none" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="drop-shadow-sm pointer-events-none">
-          <path d={trackPath} fill="none" stroke="#D9DBD6" strokeWidth={strokeWidth} strokeLinecap="round" />
-          {valuePath && <path d={valuePath} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" style={{ opacity: 0.9 }} />}
+          <path
+            d={trackPath}
+            fill="none"
+            stroke="#D9DBD6"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+          {/* Progress uses dashoffset from startDeg */}
+          <path
+            d={trackPath}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            ref={(node) => {
+              if (!node) return;
+              const L = node.getTotalLength();
+              node.style.strokeDasharray = `${L} ${L}`;
+              node.style.strokeDashoffset = `${L * (1 - norm)}`;
+              node.style.opacity = '0.9';
+            }}
+          />
         </svg>
         <div
           className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none"
-          style={{ transform: `rotate(${rotation}deg)` }}
+          style={{ transform: `rotate(${angleDeg}deg)` }}
         >
           <div className="w-1 h-3 bg-white rounded-full absolute -top-1 shadow-sm" />
         </div>
