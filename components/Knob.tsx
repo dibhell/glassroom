@@ -38,7 +38,7 @@ export const Knob: React.FC<KnobProps> = ({
     // --- MATH CONSTANTS ---
     // Higher = more precision (slower movement). 
     // 150px feels responsive and modern.
-    const SENSITIVITY = 150; 
+    const SENSITIVITY = 140; 
 
     // --- CORE LOGIC ---
     // Calculates new value based on delta Y
@@ -60,9 +60,12 @@ export const Knob: React.FC<KnobProps> = ({
         newValue = Math.max(min, Math.min(max, newValue));
 
         // Step
-        if (step > 0) {
-            newValue = Math.round(newValue / step) * step;
-        }
+        if (step > 0) newValue = Math.round(newValue / step) * step;
+
+        // Snap to edges if close (avoid getting stuck at 0.1 etc.)
+        const snap = step > 0 ? step * 0.6 : 0.001;
+        if (Math.abs(newValue - min) <= snap) newValue = min;
+        if (Math.abs(newValue - max) <= snap) newValue = max;
 
         // Precision Clamp (fix JS float errors like 0.300000004)
         newValue = Math.round(newValue * 10000) / 10000;
@@ -157,15 +160,32 @@ export const Knob: React.FC<KnobProps> = ({
     // --- VISUALS ---
     const normalized = Math.min(1, Math.max(0, (value - min) / (max - min)));
     // 270 degree arc (-135 to +135)
-    const rotation = -135 + (normalized * 270);
+    const startDeg = -135;
+    const sweepDeg = 270;
+    const rotation = startDeg + (normalized * sweepDeg);
     
     // SVG Math
     const strokeWidth = size * 0.1;
-    const r = size / 2 - (strokeWidth); 
-    const c = 2 * Math.PI * r;
-    const arc = c * 0.75; // 270deg
-    const baseTransform = `rotate(-135 ${size / 2} ${size / 2})`;
-    const offset = arc * (1 - normalized);
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size / 2 - strokeWidth;
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const polar = (deg: number) => {
+        const rad = toRad(deg);
+        return { x: cx + r * Math.cos(rad), y: cy + Math.sin(rad) };
+    };
+
+    const trackStart = polar(startDeg);
+    const trackEnd = polar(startDeg + sweepDeg);
+    const trackLargeArc = sweepDeg > 180 ? 1 : 0;
+    const trackPath = `M ${trackStart.x} ${trackStart.y} A ${r} ${r} 0 ${trackLargeArc} 1 ${trackEnd.x} ${trackEnd.y}`;
+
+    const valueDeg = startDeg + sweepDeg * normalized;
+    const valueEnd = polar(valueDeg);
+    const valueLargeArc = valueDeg - startDeg > 180 ? 1 : 0;
+    const valuePath = normalized <= 0.0001
+        ? `M ${trackStart.x} ${trackStart.y} L ${trackStart.x + 0.001} ${trackStart.y + 0.001}`
+        : `M ${trackStart.x} ${trackStart.y} A ${r} ${r} 0 ${valueLargeArc} 1 ${valueEnd.x} ${valueEnd.y}`;
 
     return (
         <div className="flex flex-col items-center gap-1 select-none touch-none">
