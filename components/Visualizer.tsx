@@ -51,6 +51,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
     const particlesRef = useRef<Particle[]>([]);
     const requestRef = useRef<number | null>(null);
     const isPlayingRef = useRef<boolean>(isPlaying);
+    const fpsRef = useRef({ last: performance.now(), acc: 0, frames: 0, fps: 0 });
 
     // Matrix Log Buffer
     const logRef = useRef<string[]>([]);
@@ -189,7 +190,12 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
 
     // --- DRAWING FUNCTIONS ---
 
-    const drawMatrixLog = (ctx: CanvasRenderingContext2D, w: number, h: number, metrics: { peakDb: number; baseFreq: number; objects: number }) => {
+    const drawMatrixLog = (
+      ctx: CanvasRenderingContext2D,
+      w: number,
+      h: number,
+      metrics: { peakDb: number; baseFreq: number; objects: number; fps: number }
+    ) => {
       ctx.save();
       ctx.font = '8px "Courier New", monospace';
       ctx.textAlign = 'left';
@@ -239,6 +245,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         `// SYSTEM`,
         `ACTIVE_OBJ: ${metrics.objects}`,
         `HEAP_SIZE : ${(metrics.objects * 0.45).toFixed(2)}KB`,
+        `FPS       : ${metrics.fps.toFixed(0)}`,
       ];
 
       y = 15;
@@ -535,6 +542,19 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) return;
 
+        // FPS measure
+        const fpsState = fpsRef.current;
+        const now = performance.now();
+        const dt = now - fpsState.last;
+        fpsState.last = now;
+        fpsState.acc += dt;
+        fpsState.frames += 1;
+        if (fpsState.acc >= 500) {
+          fpsState.fps = (fpsState.frames / fpsState.acc) * 1000;
+          fpsState.acc = 0;
+          fpsState.frames = 0;
+        }
+
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = '#2E2F2B';
@@ -554,6 +574,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
           peakDb,
           baseFreq: audio.baseFrequency,
           objects: bubblesRef.current.length,
+          fps: fpsRef.current.fps,
         });
         drawRoom(ctx, canvas.width, canvas.height, phys.geometryWarp, phys.roomWave, time);
 
