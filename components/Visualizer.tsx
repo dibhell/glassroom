@@ -34,6 +34,7 @@ const MAX_ACCEL = 6;             // per frame contribution (tempo-scaled below)
 
 // Audio spam guard (optional but helps when magneto pins on walls)
 const AUDIO_COOLDOWN_MS = 50;
+const VOID_PLANE_Z = DEPTH * 0.95; // inner back wall plane for Void sink
 
 type JellyState = {
   sx: number; sy: number; rot: number;
@@ -810,6 +811,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
 
         const { tempo, gravity, buddingChance, cannibalism, wind, blackHole, weakness, magneto, fragmentation, freeze, roomWave } = phys;
         const cx = canvas.width / 2; const cy = canvas.height / 2;
+        const voidZ = VOID_PLANE_Z;
 
         // --- PARTICLE LOOP ---
         for (let i = 0; i < particles.length; i++) {
@@ -868,16 +870,20 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
             // Use XY distance for the "on-screen" spiral; Z is treated as a funnel into depth.
             const dx = cx - b.x;
             const dy = cy - b.y;
+            const dzVoid = voidZ - b.z;
             const rSq = dx * dx + dy * dy;
+            const distSq3d = rSq + dzVoid * dzVoid;
             const r = Math.sqrt(Math.max(EPS, rSq));
+            const dist3d = Math.sqrt(Math.max(EPS, distSq3d));
             const scale = FOCAL_LENGTH / (FOCAL_LENGTH + b.z);
             const r2d = r * scale;
+            const dist3d2d = dist3d * scale;
 
             // event horizon in *screen space* (projection), so it matches what the player sees
             const bhCurve = blackHoleEff * blackHoleEff;
             const horizon = 14 + bhCurve * 90;
             const horizonWithSize = horizon + (b.radius * scale) * 0.2;
-            const horizonHit = r2d < horizonWithSize;
+            const horizonHit = dist3d2d < horizonWithSize;
             let shouldSwallow = false;
             if (horizonHit) {
               if (!b.voidEnteredAt) {
@@ -894,14 +900,15 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
 
             const ux = dx / r;
             const uy = dy / r;
+            const uz = dzVoid / dist3d;
             const tx = -uy;
             const ty = ux;
 
             // Newtonian-like gravity with softening + accel clamp for stability
             const gm = 32000 * bhCurve + 6000 * blackHoleEff;
             const soft = 2500; // px^2
-            const reachFalloff = 1 / (1 + (r / 800));
-            let a = (gm / (rSq + soft)) * reachFalloff;
+            const reachFalloff = 1 / (1 + (dist3d / 900));
+            let a = (gm / (distSq3d + soft)) * reachFalloff;
             const maxA = MAX_ACCEL * Math.max(0.2, tempo);
             if (a > maxA) a = maxA;
 
@@ -911,11 +918,11 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
 
             b.vx += ux * a + tx * aTan;
             b.vy += uy * a + ty * aTan;
+            b.vz += uz * a;
 
             // Depth funnel: pull towards mid-depth so bubbles don't "bounce" off the back wall.
-            const funnel = (1 / (1 + (r / 700))) * bhCurve;
-            const dz = (DEPTH * 0.5) - b.z;
-            b.vz += (dz / DEPTH) * a * (0.25 + 0.45 * blackHoleEff);
+            const funnel = (1 / (1 + (dist3d / 900))) * bhCurve;
+            b.vz += uz * a * 0.25 * funnel;
 
             // Accretion drag: remove angular momentum so orbits become spirals
             const vTan = b.vx * tx + b.vy * ty;
