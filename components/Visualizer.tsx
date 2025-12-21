@@ -271,6 +271,7 @@ type BubbleExt = Bubble & {
 
 type Vec2 = { x: number; y: number };
 type Vec3 = { x: number; y: number; z: number };
+type Plane = { n: Vec3; d: number };
 type RoomCache = {
   w: number;
   h: number;
@@ -514,6 +515,90 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         roomCacheRef.current = cache;
       }
       return cache;
+    };
+
+    const updateRoomWarp = (w: number, h: number, warp: number, wave: number, time: number) => {
+      const cache = ensureRoomCache(w, h);
+      const { frontBase, backBase, front, back } = cache;
+      for (let i = 0; i < front.length; i++) {
+        front[i].x = frontBase[i].x;
+        front[i].y = frontBase[i].y;
+        front[i].z = frontBase[i].z;
+        back[i].x = backBase[i].x;
+        back[i].y = backBase[i].y;
+        back[i].z = backBase[i].z;
+      }
+
+      const warpAmt = warp * 0.35;
+      const waveScale = wave * 0.35;
+      const waveAmt = waveScale * 0.25;
+      const wavePhase = time * 0.6;
+
+      const warpOffset = (ix: number, iy: number, iz: number, out: Vec3) => {
+        const dx = (Math.sin(wavePhase + ix * 0.5 + iy * 0.3) + 1) * 0.5;
+        const dy = (Math.cos(wavePhase * 0.7 + ix * 0.2 + iy * 0.6) + 1) * 0.5;
+        out.x = (dx - 0.5) * warpAmt * w;
+        out.y = (dy - 0.5) * warpAmt * h;
+        out.z = (Math.sin(wavePhase + iz) + 1) * 0.5 * warpAmt * DEPTH * 0.3;
+      };
+
+      const fTL = front[0];
+      const fTR = front[1];
+      const fBR = front[2];
+      const fBL = front[3];
+
+      const bTL = back[0];
+      const bTR = back[1];
+      const bBR = back[2];
+      const bBL = back[3];
+
+      [fTL, fTR, fBR, fBL].forEach((p, idx) => {
+        const wv = wave > 0 ? waveAmt * Math.sin(wavePhase + idx * 0.6) : 0;
+        p.x += (idx === 0 ? -1 : idx === 1 ? 1 : 0) * warpAmt * w * 0.2;
+        p.y += (idx === 0 ? -1 : idx === 3 ? 1 : 0) * warpAmt * h * 0.15;
+        p.z += wv * DEPTH * 0.1;
+      });
+      const offs: Vec3 = { x: 0, y: 0, z: 0 };
+      [bTL, bTR, bBR, bBL].forEach((p, idx) => {
+        warpOffset(idx, idx * 0.3, idx * 0.5, offs);
+        const wv = wave > 0 ? waveAmt * Math.sin(wavePhase + idx * 0.8 + 1.2) : 0;
+        p.x += offs.x;
+        p.y += offs.y;
+        p.z += offs.z + wv * DEPTH * 0.2;
+      });
+
+      return cache;
+    };
+
+    const dot3 = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
+    const cross3 = (a: Vec3, b: Vec3): Vec3 => ({
+      x: a.y * b.z - a.z * b.y,
+      y: a.z * b.x - a.x * b.z,
+      z: a.x * b.y - a.y * b.x,
+    });
+    const normalize3 = (v: Vec3): Vec3 => {
+      const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) || 1;
+      return { x: v.x / len, y: v.y / len, z: v.z / len };
+    };
+    const planeFromPoints = (a: Vec3, b: Vec3, c: Vec3, inside: Vec3): Plane => {
+      const ab = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+      const ac = { x: c.x - a.x, y: c.y - a.y, z: c.z - a.z };
+      let n = normalize3(cross3(ab, ac));
+      let d = -dot3(n, a);
+      if (dot3(n, inside) + d < 0) {
+        n = { x: -n.x, y: -n.y, z: -n.z };
+        d = -d;
+      }
+      return { n, d };
+    };
+    const planeDistance = (plane: Plane, p: Vec3) => dot3(plane.n, p) + plane.d;
+    const reflectAcrossPlane = (p: Vec3, plane: Plane): Vec3 => {
+      const dist = planeDistance(plane, p);
+      return {
+        x: p.x - 2 * dist * plane.n.x,
+        y: p.y - 2 * dist * plane.n.y,
+        z: p.z - 2 * dist * plane.n.z,
+      };
     };
 
     const getDotTextLayout = (text: string): DotTextLayout | null => {
@@ -1352,10 +1437,48 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       ctx.restore();
     };
 
-    const drawWallReflections = (ctx: CanvasRenderingContext2D, bubbles: BubbleExt[], w: number, h: number) => {
+    const drawWallReflections = (
+      ctx: CanvasRenderingContext2D,
+      bubbles: BubbleExt[],
+      w: number,
+      h: number,
+      warp: number,
+      wave: number,
+      time: number,
+    ) => {
       if (!bubbles.length) return;
       ctx.save();
       ctx.globalCompositeOperation = 'source-over';
+
+      const { front, back } = updateRoomWarp(w, h, warp, wave, time);
+      const fTL = front[0];
+      const fTR = front[1];
+      const fBR = front[2];
+      const fBL = front[3];
+      const bTL = back[0];
+      const bTR = back[1];
+      const bBR = back[2];
+      const bBL = back[3];
+
+      const center = {
+        x: (fTL.x + fTR.x + fBR.x + fBL.x + bTL.x + bTR.x + bBR.x + bBL.x) / 8,
+        y: (fTL.y + fTR.y + fBR.y + fBL.y + bTL.y + bTR.y + bBR.y + bBL.y) / 8,
+        z: (fTL.z + fTR.z + fBR.z + fBL.z + bTL.z + bTR.z + bBR.z + bBL.z) / 8,
+      };
+
+      const leftPlane = planeFromPoints(fTL, fBL, bBL, center);
+      const rightPlane = planeFromPoints(fTR, fBR, bBR, center);
+      const topPlane = planeFromPoints(fTL, fTR, bTR, center);
+      const bottomPlane = planeFromPoints(fBL, fBR, bBR, center);
+      const backPlane = planeFromPoints(bTL, bTR, bBR, center);
+
+      const proxForPlane = (plane: Plane, pos: Vec3, radius: number, range: number) => {
+        const dist = planeDistance(plane, pos);
+        if (dist <= 0) return 0;
+        const surfaceDist = dist - radius;
+        if (surfaceDist >= range) return 0;
+        return clamp01((range - Math.max(0, surfaceDist)) / range);
+      };
 
       const drawReflection = (ref: BubbleExt, alpha: number) => {
         if (alpha <= 0) return;
@@ -1403,56 +1526,60 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         const dim = 0.75;
         const baseAlpha = 0.05 * depthFade;
 
-        const distLeft = b.x - b.radius;
-        const distRight = (w - b.x) - b.radius;
-        const distTop = b.y - b.radius;
-        const distBottom = (h - b.y) - b.radius;
-        const distBack = (DEPTH - b.z) - b.radius;
-        const proxLeft = distLeft < REFLECT_RANGE ? clamp01((REFLECT_RANGE - Math.max(0, distLeft)) / REFLECT_RANGE) : 0;
-        const proxRight = distRight < REFLECT_RANGE ? clamp01((REFLECT_RANGE - Math.max(0, distRight)) / REFLECT_RANGE) : 0;
-        const proxTop = distTop < REFLECT_RANGE ? clamp01((REFLECT_RANGE - Math.max(0, distTop)) / REFLECT_RANGE) : 0;
-        const proxBottom = distBottom < REFLECT_RANGE ? clamp01((REFLECT_RANGE - Math.max(0, distBottom)) / REFLECT_RANGE) : 0;
-        const proxBack = distBack < REFLECT_BACK_RANGE ? clamp01((REFLECT_BACK_RANGE - Math.max(0, distBack)) / REFLECT_BACK_RANGE) : 0;
+        const proxLeft = proxForPlane(leftPlane, b, b.radius, REFLECT_RANGE);
+        const proxRight = proxForPlane(rightPlane, b, b.radius, REFLECT_RANGE);
+        const proxTop = proxForPlane(topPlane, b, b.radius, REFLECT_RANGE);
+        const proxBottom = proxForPlane(bottomPlane, b, b.radius, REFLECT_RANGE);
+        const proxBack = proxForPlane(backPlane, b, b.radius, REFLECT_BACK_RANGE);
 
         if (proxLeft > 0) {
-          const ref: BubbleExt = { ...b, x: -b.x, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(b, leftPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + proxLeft * 0.22) * dim);
         }
 
         if (proxRight > 0) {
-          const ref: BubbleExt = { ...b, x: 2 * w - b.x, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(b, rightPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + proxRight * 0.22) * dim);
         }
 
         if (proxTop > 0) {
-          const ref: BubbleExt = { ...b, y: -b.y, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(b, topPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + proxTop * 0.18) * dim);
         }
 
         if (proxBottom > 0) {
-          const ref: BubbleExt = { ...b, y: 2 * h - b.y, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(b, bottomPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + proxBottom * 0.18) * dim);
         }
 
         if (proxBack > 0) {
-          const ref: BubbleExt = { ...b, z: 2 * DEPTH - b.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(b, backPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + proxBack * 0.16) * dim);
         }
 
         if (proxLeft > 0 && proxTop > 0) {
-          const ref: BubbleExt = { ...b, x: -b.x, y: -b.y, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(reflectAcrossPlane(b, leftPlane), topPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + (proxLeft * proxTop) * 0.2) * dim);
         }
         if (proxLeft > 0 && proxBottom > 0) {
-          const ref: BubbleExt = { ...b, x: -b.x, y: 2 * h - b.y, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(reflectAcrossPlane(b, leftPlane), bottomPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + (proxLeft * proxBottom) * 0.2) * dim);
         }
         if (proxRight > 0 && proxTop > 0) {
-          const ref: BubbleExt = { ...b, x: 2 * w - b.x, y: -b.y, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(reflectAcrossPlane(b, rightPlane), topPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + (proxRight * proxTop) * 0.2) * dim);
         }
         if (proxRight > 0 && proxBottom > 0) {
-          const ref: BubbleExt = { ...b, x: 2 * w - b.x, y: 2 * h - b.y, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
+          const refPos = reflectAcrossPlane(reflectAcrossPlane(b, rightPlane), bottomPlane);
+          const ref: BubbleExt = { ...b, x: refPos.x, y: refPos.y, z: refPos.z, digitOverlay: undefined, audioSource: null, labelAlpha: 0, labelTargetAlpha: 0 };
           drawReflection(ref, (baseAlpha + (proxRight * proxBottom) * 0.2) * dim);
         }
       }
@@ -1996,7 +2123,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
 
         if (!isPlayingRef.current) {
           bubbles.sort((a, b) => b.z - a.z);
-          drawWallReflections(ctx, bubbles, canvas.width, canvas.height);
+          drawWallReflections(ctx, bubbles, canvas.width, canvas.height, phys.geometryWarp, phys.roomWave, time);
           bubbles.forEach(b => drawAmoeba(ctx, b, canvas.width, canvas.height, 0, false, nowMs));
           drawSpatialGyro(ctx, canvas.width, canvas.height, time);
           requestRef.current = requestAnimationFrame(animate);
@@ -2382,7 +2509,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
 
         // Draw
         bubbles.sort((a, b) => b.z - a.z);
-        drawWallReflections(ctx, bubbles, canvas.width, canvas.height);
+        drawWallReflections(ctx, bubbles, canvas.width, canvas.height, phys.geometryWarp, phys.roomWave, time);
         bubbles.forEach(b => drawAmoeba(ctx, b, canvas.width, canvas.height, (b.z / DEPTH) * 6, b.overlapFrame === frameId, nowMs));
 
         drawHUD(ctx, topPairs, canvas.width, canvas.height);

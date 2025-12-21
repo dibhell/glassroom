@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AudioSettings } from '../types';
 import { Play, Pause, Square, Sliders, Mic2, XCircle, Bus, Headphones, Brush, Book, Database } from 'lucide-react';
 import { audioService } from '../services/audioEngine';
+import { BufferedKnob } from './BufferedKnob';
+import { TapeCassette } from './TapeCassette';
 
 interface MixerProps {
   settings: AudioSettings;
@@ -12,6 +14,43 @@ interface MixerProps {
 }
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
+const dbToLevel = (db: number) => {
+  if (!Number.isFinite(db) || db <= -60) return 0;
+  return clamp(Math.pow(10, db / 20), 0, 1);
+};
+
+const BulbIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className={className}
+  >
+    <path d="M12 1.25v1.05" />
+    <path
+      d="
+        M7.8 5.8
+        C7.8 4.0 9.6 2.9 12.0 2.9
+        C14.4 2.9 16.2 4.0 16.2 5.8
+        V14.0
+        C16.2 15.4 14.8 16.2 12.0 16.2
+        C9.2 16.2 7.8 15.4 7.8 14.0
+        Z"
+    />
+    <path d="M12 6.6v6.0" opacity="0.65" />
+    <path d="M8.4 16.2v1.7" />
+    <path d="M10.8 16.2v2.5" />
+    <path d="M13.2 16.2v2.5" />
+    <path d="M15.6 16.2v1.7" />
+  </svg>
+);
 const TRACK_TOP = 8;
 const TRACK_BOTTOM = 8;
 const THUMB_RADIUS = 8;
@@ -198,6 +237,12 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
   const [isRecording, setIsRecording] = useState(false);
   const [bank, setBank] = useState(audioService.getBankSnapshot());
   const [micGain, setMicGain] = useState(2.6);
+  const [lofiEnabled, setLofiEnabled] = useState(false);
+  const [lofiDrive, setLofiDrive] = useState(0);
+  const [lofiTape, setLofiTape] = useState(0);
+  const [lofiCrush, setLofiCrush] = useState(0);
+  const [lofiLevel, setLofiLevel] = useState(0);
+  const lofiLevelUpdateRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sampleLoadRef = useRef({ startIndex: 0, overwrite: false });
   const recordSlotRef = useRef<number | null>(null);
@@ -214,6 +259,27 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
     audioService.setEqGains(nextLow, nextMid, nextHigh);
     setSettings(prev => ({ ...prev, [band]: val }));
   };
+
+  const handleLofiToggle = useCallback(() => {
+    const next = !lofiEnabled;
+    setLofiEnabled(next);
+    audioService.setLofiEnabled(next);
+  }, [lofiEnabled]);
+
+  const handleLofiDrive = useCallback((v: number) => {
+    setLofiDrive(v);
+    audioService.setLofiParams({ drive: v });
+  }, []);
+
+  const handleLofiTape = useCallback((v: number) => {
+    setLofiTape(v);
+    audioService.setLofiParams({ tape: v });
+  }, []);
+
+  const handleLofiCrush = useCallback((v: number) => {
+    setLofiCrush(v);
+    audioService.setLofiParams({ crush: v });
+  }, []);
 
   const refreshBank = useCallback(() => {
     setBank(audioService.getBankSnapshot());
@@ -424,9 +490,17 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
         for (let i = 1; i < 10; i++) ctx.fillRect(0, top + innerH * (i / 10), width, 1);
       };
 
-      renderVU(peakCtx, audioService.getPeakLevel());
-      renderVU(mainCtx, audioService.getMainLevel());
+      const peakDb = audioService.getPeakLevel();
+      const mainDb = audioService.getMainLevel();
+      renderVU(peakCtx, peakDb);
+      renderVU(mainCtx, mainDb);
       if (micCtx) renderVU(micCtx, audioService.getMicLevelDb());
+
+      const now = performance.now();
+      if (now - lofiLevelUpdateRef.current > 120) {
+        lofiLevelUpdateRef.current = now;
+        setLofiLevel(dbToLevel(mainDb));
+      }
 
       animationRef.current = requestAnimationFrame(drawVU);
     };
@@ -479,6 +553,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
           50% { transform: translateX(calc(-1 * var(--loaded-shift))); }
           100% { transform: translateX(0); }
         }
+        .lofi-knob > div:last-child > span:last-child {
+          display: none;
+        }
       `}</style>
       <div className="flex items-center gap-2 text-[10px] text-[#7A8476] h-4 pl-2 mb-2">
         <Sliders size={12} /> MASTER CONTROL
@@ -486,33 +563,101 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-[1.10fr_0.70fr_0.90fr_0.90fr_1.40fr]">
         {/* TRANSPORT */}
-        <div className="col-span-2 lg:col-span-1 min-w-0 bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-3 grid gap-1 overflow-hidden" style={{ gridTemplateRows: '16px 1fr' }}>
+        <div className="col-span-2 lg:col-span-1 min-w-0 bg-[#D9DBD6] rounded-2xl border border-[#C7C9C5] p-3 grid gap-2 overflow-hidden" style={{ gridTemplateRows: '16px auto' }}>
           <div className="h-4 text-[#7A8476] leading-none flex items-center justify-center" title="Transport">
             <Bus size={14} />
             <span className="sr-only">Transport</span>
           </div>
-          <div className="flex items-center justify-center gap-2 h-[120px] sm:h-[170px]">
-            <button
-              onClick={onPlayPause}
-              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all shadow-sm ${isPlaying ? 'bg-[#7A8476] text-[#F2F2F0]' : 'bg-[#7A8476] text-[#F2F2F0] hover:bg-[#5F665F]'}`}
-            >
-              {isPlaying ? <Pause size={20} className="fill-current" /> : <Play size={20} className="fill-current ml-0.5" />}
-            </button>
-            <button
-              onClick={onStop}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] flex items-center justify-center hover:bg-[#B9BCB7] transition-all"
-            >
-              <Square size={18} className="fill-current" />
-            </button>
-            <button
-              onClick={handleRecordToggle}
-              onPointerDown={handleRecordPointerDown()}
-              disabled={recordDisabled}
-              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full border ${isRecording ? 'border-[#7A8476] bg-[#7A8476] text-[#F2F2F0]' : 'border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] hover:bg-[#B9BCB7]'} flex items-center justify-center transition-all ${recordDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={isRecording ? 'Stop recording' : 'Record sample (max 10s)'}
-            >
-              <Mic2 size={18} className="fill-current" />
-            </button>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center justify-center gap-1">
+              <button
+                onClick={onPlayPause}
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${isPlaying ? 'bg-[#7A8476] text-[#F2F2F0]' : 'bg-[#7A8476] text-[#F2F2F0] hover:bg-[#5F665F]'}`}
+              >
+                {isPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current ml-0.5" />}
+              </button>
+              <button
+                onClick={onStop}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] flex items-center justify-center hover:bg-[#B9BCB7] transition-all"
+              >
+                <Square size={14} className="fill-current" />
+              </button>
+              <button
+                onClick={handleRecordToggle}
+                onPointerDown={handleRecordPointerDown()}
+                disabled={recordDisabled}
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border ${isRecording ? 'border-[#7A8476] bg-[#7A8476] text-[#F2F2F0]' : 'border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] hover:bg-[#B9BCB7]'} flex items-center justify-center transition-all ${recordDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={isRecording ? 'Stop recording' : 'Record sample (max 10s)'}
+              >
+                <Mic2 size={14} className="fill-current" />
+              </button>
+            </div>
+            <div className="w-full h-px bg-[#B9BCB7] opacity-60" />
+            <div className="relative w-full" style={{ aspectRatio: '95 / 60' }}>
+              <BulbIcon className="absolute top-[38%] left-[14%] -translate-x-1/2 -translate-y-1/2 w-4 h-4 text-[#7A8476] pointer-events-none" />
+              <TapeCassette
+                enabled={lofiEnabled}
+                tape={lofiTape}
+                level={lofiLevel}
+                className="absolute inset-0 w-full h-full text-[#7A8476] pointer-events-none"
+              />
+              <div className="absolute inset-x-4 top-[84%] -translate-y-1/3 flex items-end justify-center">
+                <div className="flex items-end justify-center gap-2">
+                  <div className="px-0.5 rounded-md border border-[#B9BCB7] bg-[#E7E8E5]/70 backdrop-blur-sm" style={{ paddingTop: '0.01rem', paddingBottom: '0.01rem' }}>
+                    <BufferedKnob
+                      value={lofiDrive}
+                      onCommit={handleLofiDrive}
+                      min={0}
+                      max={1}
+                      defaultValue={0}
+                      size={26}
+                      color="#7A8476"
+                      label="DRIVE"
+                      format={() => ''}
+                      className="lofi-knob"
+                      live
+                    />
+                  </div>
+                  <div className="px-0.5 rounded-md border border-[#B9BCB7] bg-[#E7E8E5]/70 backdrop-blur-sm" style={{ paddingTop: '0.01rem', paddingBottom: '0.01rem' }}>
+                    <BufferedKnob
+                      value={lofiTape}
+                      onCommit={handleLofiTape}
+                      min={0}
+                      max={1}
+                      defaultValue={0}
+                      size={26}
+                      color="#7A8476"
+                      label="TAPE"
+                      format={() => ''}
+                      className="lofi-knob"
+                      live
+                    />
+                  </div>
+                  <div className="px-0.5 rounded-md border border-[#B9BCB7] bg-[#E7E8E5]/70 backdrop-blur-sm" style={{ paddingTop: '0.01rem', paddingBottom: '0.01rem' }}>
+                    <BufferedKnob
+                      value={lofiCrush}
+                      onCommit={handleLofiCrush}
+                      min={0}
+                      max={1}
+                      defaultValue={0}
+                      size={26}
+                      color="#7A8476"
+                      label="CRUSH"
+                      format={() => ''}
+                      className="lofi-knob"
+                      live
+                    />
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleLofiToggle}
+                aria-pressed={lofiEnabled}
+                className={`absolute left-[86%] top-[38%] -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border transition-colors ${lofiEnabled ? 'bg-[#7A8476] border-[#7A8476]' : 'bg-[#D9DBD6] border-[#B9BCB7]'}`}
+                title={lofiEnabled ? 'LO-FI on' : 'LO-FI off'}
+              />
+            </div>
           </div>
         </div>
 

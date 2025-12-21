@@ -5,6 +5,20 @@ import { freqToMidi, midiToFreq, snapMidiToPitchClass } from '../src/music/notes
 import { quantizeMidiToScale } from '../src/music/quantize';
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const smoothstep = (edge0: number, edge1: number, x: number) => {
+  const t = clamp((x - edge0) / (edge1 - edge0 || 1), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+const makeSaturationCurve = (amount: number, samples = 1024) => {
+  const k = clamp(amount, 1, 60);
+  const curve = new Float32Array(samples);
+  for (let i = 0; i < samples; i++) {
+    const x = (i * 2) / (samples - 1) - 1;
+    curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+  }
+  return curve;
+};
 const WET_BOOST = 5;
 const applyWetBoost = (raw: number) => {
   const v = clamp(raw, 0, 1);
@@ -14,6 +28,7 @@ const applyWetBoost = (raw: number) => {
 };
 
 type SourceChoice = { type: 'mic' | 'smp' | 'synth'; index?: number };
+type LofiParams = { drive: number; tape: number; crush: number };
 
 const GRANULAR_WORKLET_CODE = `
 class GranularStretchProcessor extends AudioWorkletProcessor {
@@ -110,9 +125,173 @@ class GranularStretchProcessor extends AudioWorkletProcessor {
 registerProcessor('granular-stretch', GranularStretchProcessor);
 `;
 
+type MasterLofi = {
+  setEnabled: (enabled: boolean) => void;
+  setParams: (params: LofiParams) => void;
+  dispose: () => void;
+};
+
+const createMasterLofi = (
+  ctx: AudioContext,
+  masterPreFXGain: GainNode,
+  masterPostFXGain: GainNode
+): MasterLofi | null => {
+  if (!ctx.audioWorklet) return null;
+  let crusher: AudioWorkletNode;
+  try {
+    crusher = new AudioWorkletNode(ctx, 'lofi-crusher', {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+    });
+  } catch (e) {
+    console.warn('Lofi crusher unavailable, bypassing master LOFI.', e);
+    return null;
+  }
+
+  const dryGain = ctx.createGain();
+  const wetGain = ctx.createGain();
+  const mixSumGain = ctx.createGain();
+  dryGain.gain.value = 1;
+  wetGain.gain.value = 0;
+  mixSumGain.gain.value = 1;
+
+  const saturation = ctx.createWaveShaper();
+  saturation.curve = makeSaturationCurve(1);
+  saturation.oversample = '2x';
+  const toneLPF = ctx.createBiquadFilter();
+  toneLPF.type = 'lowpass';
+  toneLPF.frequency.value = 16000;
+  toneLPF.Q.value = 0.3;
+
+  const delay = ctx.createDelay(0.05);
+  delay.delayTime.value = 0.012;
+
+  const wowOsc = ctx.createOscillator();
+  wowOsc.type = 'sine';
+  const wowGain = ctx.createGain();
+  wowGain.gain.value = 0;
+  wowOsc.connect(wowGain).connect(delay.delayTime);
+
+  const flutterOsc = ctx.createOscillator();
+  flutterOsc.type = 'sine';
+  const flutterGain = ctx.createGain();
+  flutterGain.gain.value = 0;
+  flutterOsc.connect(flutterGain).connect(delay.delayTime);
+
+  const jitterSource = ctx.createConstantSource();
+  jitterSource.offset.value = 0;
+  jitterSource.connect(delay.delayTime);
+
+  masterPreFXGain.connect(dryGain);
+  dryGain.connect(mixSumGain);
+
+  masterPreFXGain.connect(saturation);
+  saturation.connect(toneLPF);
+  toneLPF.connect(delay);
+  delay.connect(crusher);
+  crusher.connect(wetGain);
+  wetGain.connect(mixSumGain);
+
+  mixSumGain.connect(masterPostFXGain);
+
+  wowOsc.start();
+  flutterOsc.start();
+  jitterSource.start();
+
+  let jitterDepthSec = 0;
+  const jitterTimer = window.setInterval(() => {
+    const now = ctx.currentTime;
+    const depth = jitterDepthSec;
+    const target = depth > 0 ? (Math.random() * 2 - 1) * depth : 0;
+    jitterSource.offset.setTargetAtTime(target, now, 0.08);
+  }, 140);
+
+  const setEnabled = (enabled: boolean) => {
+    const now = ctx.currentTime;
+    dryGain.gain.cancelScheduledValues(now);
+    wetGain.gain.cancelScheduledValues(now);
+    dryGain.gain.setValueAtTime(dryGain.gain.value, now);
+    wetGain.gain.setValueAtTime(wetGain.gain.value, now);
+    if (enabled) {
+      dryGain.gain.linearRampToValueAtTime(0, now + 0.02);
+      wetGain.gain.linearRampToValueAtTime(1, now + 0.02);
+    } else {
+      dryGain.gain.linearRampToValueAtTime(1, now + 0.02);
+      wetGain.gain.linearRampToValueAtTime(0, now + 0.02);
+    }
+  };
+
+  const setParams = (params: LofiParams) => {
+    const now = ctx.currentTime;
+    const drive = clamp(params.drive, 0, 1);
+    const driveAmount = Math.pow(drive, 2.2);
+    const curveAmount = lerp(1, 30, driveAmount);
+    saturation.curve = makeSaturationCurve(curveAmount);
+    const cutoff = lerp(16000, 8000, Math.pow(drive, 1.4));
+    toneLPF.frequency.setTargetAtTime(cutoff, now, 0.08);
+
+    const t = clamp(params.tape, 0, 1);
+    const wowRate = lerp(0.25, 1.2, Math.pow(t, 0.7));
+    const wowDepthMs = lerp(0.0, 6.0, smoothstep(0.0, 0.65, t));
+    const flutterRate = lerp(4.0, 10.0, smoothstep(0.45, 1.0, t));
+    const flutterDepthMs = lerp(0.0, 2.0, smoothstep(0.45, 1.0, t));
+    const jitterMs = lerp(0.0, 0.8, smoothstep(0.6, 1.0, t));
+    wowOsc.frequency.setTargetAtTime(wowRate, now, 0.08);
+    flutterOsc.frequency.setTargetAtTime(flutterRate, now, 0.08);
+    wowGain.gain.setTargetAtTime(wowDepthMs * 0.001, now, 0.08);
+    flutterGain.gain.setTargetAtTime(flutterDepthMs * 0.001, now, 0.08);
+    jitterDepthSec = jitterMs * 0.001;
+
+    const c = clamp(params.crush, 0, 1);
+    let bit = 24;
+    let down = 1;
+    if (c < 0.5) {
+      const t1 = c / 0.5;
+      bit = lerp(24, 8, t1);
+      down = lerp(1.0, 0.15, t1);
+    } else {
+      const t2 = (c - 0.5) / 0.5;
+      bit = lerp(8, 1, t2);
+      down = lerp(0.15, 0.03, t2);
+    }
+    const autoGain = lerp(1.0, 1.6, Math.pow(c, 1.8));
+    crusher.parameters.get('bitDepth')?.setTargetAtTime(bit, now, 0.08);
+    crusher.parameters.get('downsample')?.setTargetAtTime(down, now, 0.08);
+    crusher.parameters.get('autoGain')?.setTargetAtTime(autoGain, now, 0.08);
+  };
+
+  const dispose = () => {
+    clearInterval(jitterTimer);
+    try { wowOsc.stop(); } catch { /* ignore */ }
+    try { flutterOsc.stop(); } catch { /* ignore */ }
+    try { jitterSource.stop(); } catch { /* ignore */ }
+    try { wowOsc.disconnect(); } catch { /* ignore */ }
+    try { flutterOsc.disconnect(); } catch { /* ignore */ }
+    try { jitterSource.disconnect(); } catch { /* ignore */ }
+    try { masterPreFXGain.disconnect(dryGain); } catch { /* ignore */ }
+    try { masterPreFXGain.disconnect(saturation); } catch { /* ignore */ }
+    try { dryGain.disconnect(); } catch { /* ignore */ }
+    try { wetGain.disconnect(); } catch { /* ignore */ }
+    try { mixSumGain.disconnect(); } catch { /* ignore */ }
+    try { saturation.disconnect(); } catch { /* ignore */ }
+    try { toneLPF.disconnect(); } catch { /* ignore */ }
+    try { delay.disconnect(); } catch { /* ignore */ }
+    try { crusher.disconnect(); } catch { /* ignore */ }
+  };
+
+  return { setEnabled, setParams, dispose };
+};
+
 class AudioEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private masterPreFXGain: GainNode | null = null;
+  private masterPostFXGain: GainNode | null = null;
+  private masterLofi: MasterLofi | null = null;
+  private lofiParams: LofiParams = { drive: 0, tape: 0, crush: 0 };
+  private lofiEnabled: boolean = false;
+  private lofiWorkletLoaded: boolean = false;
+  private lofiWorkletLoading: Promise<void> | null = null;
   private compressorNode: DynamicsCompressorNode | null = null;
   private makeupGain: GainNode | null = null;
   private limiterNode: DynamicsCompressorNode | null = null;
@@ -304,6 +483,7 @@ class AudioEngine {
     this.feedbackR.gain.value = 0.3;
 
     await this.ensureGranularNode();
+    await this.ensureLofiWorklet();
     this.pingPongInput.connect(this.delayL);
     if (this.granularNode) {
       this.granularGain = this.ctx.createGain();
@@ -317,30 +497,54 @@ class AudioEngine {
     this.delayR.connect(this.pingPongMerger, 0, 1);
     this.delayR.connect(this.feedbackR).connect(this.delayL);
 
+    this.masterPreFXGain = this.ctx.createGain();
+    this.masterPreFXGain.gain.value = 1;
+    this.masterPostFXGain = this.ctx.createGain();
+    this.masterPostFXGain.gain.value = 1;
+
     // --- MAIN ROUTING ---
     this.reverbNode.connect(this.reverbGain);
-    
-    this.reverbGain.connect(this.lowEQ);
-    this.dryGain.connect(this.lowEQ);
+
     this.pingPongMerger.connect(this.pingPongReturn);
-    this.pingPongReturn.connect(this.lowEQ);
+
+    // masterPreFXGain is the master sum before LOFI
+    this.reverbGain.connect(this.masterPreFXGain);
+    this.dryGain.connect(this.masterPreFXGain);
+    this.pingPongReturn.connect(this.masterPreFXGain);
+
+    // masterPreFX -> LOFI -> masterPostFX -> EQ -> compressor -> limiter -> analysers -> destination
+    if (this.masterPreFXGain && this.masterPostFXGain) {
+      this.masterLofi = createMasterLofi(this.ctx, this.masterPreFXGain, this.masterPostFXGain);
+      if (!this.masterLofi) {
+        this.masterPreFXGain.connect(this.masterPostFXGain);
+      }
+    }
+    if (this.masterPostFXGain) {
+      this.masterPostFXGain.connect(this.lowEQ);
+    }
 
     this.lowEQ.connect(this.midEQ);
     this.midEQ.connect(this.highEQ);
-    // highEQ -> compressor -> makeup -> limiter -> main analyser -> destination
     this.highEQ.connect(this.compressorNode);
+
     this.compressorNode.connect(this.makeupGain);
     this.makeupGain.connect(this.limiterNode);
     // tap peak before limiter
-    this.makeupGain.connect(this.peakAnalyser);
+    if (this.peakAnalyser) this.makeupGain.connect(this.peakAnalyser);
     this.limiterNode.connect(this.mainAnalyser);
     if (this.stereoSplitter && this.stereoAnalyserL && this.stereoAnalyserR) {
       this.limiterNode.connect(this.stereoSplitter);
       this.stereoSplitter.connect(this.stereoAnalyserL, 0);
       this.stereoSplitter.connect(this.stereoAnalyserR, 1);
     }
+
     this.mainAnalyser.connect(this.masterGain);
     this.masterGain.connect(this.ctx.destination);
+
+    if (this.masterLofi) {
+      this.masterLofi.setParams(this.lofiParams);
+      this.masterLofi.setEnabled(this.lofiEnabled);
+    }
 
     this.installLifecycle();
     this.installGestureUnlock();
@@ -515,6 +719,23 @@ class AudioEngine {
       console.warn('Granular worklet unavailable, skipping stretch.', e);
       this.granularNode = null;
     }
+  }
+
+  private async ensureLofiWorklet(): Promise<void> {
+    if (!this.ctx || !this.ctx.audioWorklet || this.lofiWorkletLoaded) return;
+    if (this.lofiWorkletLoading) return this.lofiWorkletLoading;
+    this.lofiWorkletLoading = this.ctx.audioWorklet
+      .addModule(new URL('../src/audio/worklets/lofiCrusher.worklet.ts', import.meta.url))
+      .then(() => {
+        this.lofiWorkletLoaded = true;
+      })
+      .catch((e) => {
+        console.warn('Lofi worklet unavailable, bypassing crusher.', e);
+      })
+      .finally(() => {
+        this.lofiWorkletLoading = null;
+      });
+    return this.lofiWorkletLoading;
   }
 
   private async iosSilentTick(): Promise<void> {
@@ -1052,6 +1273,23 @@ class AudioEngine {
     const wet = applyWetBoost(safe);
     this.reverbGain.gain.setTargetAtTime(wet, this.ctx.currentTime, 0.1);
     this.dryGain.gain.setTargetAtTime(1 - (wet * 0.5), this.ctx.currentTime, 0.1);
+  }
+
+  public setLofiEnabled(enabled: boolean) {
+    this.lofiEnabled = Boolean(enabled);
+    if (!this.ctx || !this.masterLofi) return;
+    this.masterLofi.setEnabled(this.lofiEnabled);
+  }
+
+  public setLofiParams(params: Partial<LofiParams>) {
+    const next: LofiParams = {
+      drive: Number.isFinite(params.drive) ? clamp(params.drive as number, 0, 1) : this.lofiParams.drive,
+      tape: Number.isFinite(params.tape) ? clamp(params.tape as number, 0, 1) : this.lofiParams.tape,
+      crush: Number.isFinite(params.crush) ? clamp(params.crush as number, 0, 1) : this.lofiParams.crush,
+    };
+    this.lofiParams = next;
+    if (!this.ctx || !this.masterLofi) return;
+    this.masterLofi.setParams(next);
   }
 
   public setSpatialControl(pan: number, depth: number, width: number) {
