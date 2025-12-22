@@ -725,7 +725,7 @@ class AudioEngine {
     if (!this.ctx || !this.ctx.audioWorklet || this.lofiWorkletLoaded) return;
     if (this.lofiWorkletLoading) return this.lofiWorkletLoading;
     this.lofiWorkletLoading = this.ctx.audioWorklet
-      .addModule(new URL('../src/audio/worklets/lofiCrusher.worklet.ts', import.meta.url))
+      .addModule(new URL('../src/audio/worklets/lofiCrusher.worklet.js', import.meta.url))
       .then(() => {
         this.lofiWorkletLoaded = true;
       })

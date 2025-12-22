@@ -7,16 +7,13 @@ class LofiCrusherProcessor extends AudioWorkletProcessor {
     ];
   }
 
-  private phase: number;
-  private held: number[];
-
   constructor() {
     super();
     this.phase = 0;
     this.held = [];
   }
 
-  process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>) {
+  process(inputs, outputs, parameters) {
     const input = inputs[0];
     const output = outputs[0];
     if (!output || output.length === 0) return true;
