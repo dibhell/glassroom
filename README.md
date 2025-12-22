@@ -10,6 +10,8 @@ ktore poruszaja sie w przestrzeni 3D i uruchamiaja dzwieki przy zderzeniach.
 - Dzwiek generowany przez Web Audio (synteza lub wczytany sample).
 - Pokretla steruja fizyka, przestrzenia i zachowaniem obiektow.
 - Mixer z transportem, glosnoscia, EQ i miernikiem VU.
+- Master LO-FI na torze master (Drive/Tape/Crush + bitcrusher w AudioWorklet).
+- Gyro rings steruja PAN/DEPTH/WIDTH, a lissajous pokazuje stereo.
 
 ## Muzyka i skale
 - Pokretlo MUSIC przewija liste skal (snap do krokow), klik na ikone otwiera mini-picker.
@@ -30,5 +32,5 @@ ktore poruszaja sie w przestrzeni 3D i uruchamiaja dzwieki przy zderzeniach.
 
 ## Technologie
 - React 19, TypeScript, Vite
-- Web Audio API, Canvas 2D
+- Web Audio API, AudioWorklet, Canvas 2D
 - Tailwind (CDN)

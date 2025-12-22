@@ -5,6 +5,7 @@
 - Play/Pause startuje lub pauzuje generacje dzwieku.
 - Stop zatrzymuje dzwiek i resetuje scene.
 - Klikniecie w wizualizator tworzy kulke, przeciaganie dodaje kolejne.
+- Gyro rings (PAN/DEPTH/WIDTH) steruja przestrzenia; kliknij i przeciagnij po pierscieniu, podwojny tap/klik resetuje dany ring.
 
 ## Pokretla
 - Przeciagaj w gore/dol, aby zmieniac wartosc.
@@ -36,5 +37,6 @@
 ## Mixer
 - Main - glosnosc.
 - EQ Low/Mid/High - korekcja pasm.
+- LO-FI (Master) - Drive, Tape, Crush + wlacznik; kaseta animuje sie zaleznnie od Tape i poziomu.
 - Load Sample - wczytanie pliku audio zamiast syntezy.
 - FREQ - podglad bazowej czestotliwosci wynikajacej z Tuning.
