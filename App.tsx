@@ -504,7 +504,7 @@ const App: React.FC = () => {
         />
 
         {!hasInteracted && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F2F2F0] animate-in fade-in duration-700">
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F2F2F0] opacity-100">
             <div className="relative w-64 h-64 md:w-80 md:h-80 mb-12">
               <img src={iciLogo} alt="Icicles Chamber" className="w-full h-full object-contain drop-shadow-2xl" />
             </div>
