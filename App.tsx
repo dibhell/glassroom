@@ -106,6 +106,7 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioNeedsUnlock, setAudioNeedsUnlock] = useState(false);
   const visualizerRef = useRef<VisualizerHandle>(null);
+  const logoSrc = `${import.meta.env.BASE_URL}glass-room.png`;
 
   // Mixer-controlled audio params only (avoid rewriting these on every knob tick)
   const [mixerSettings, setMixerSettings] = useState<AudioSettings>({
@@ -505,7 +506,7 @@ const App: React.FC = () => {
         {!hasInteracted && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F2F2F0] opacity-100">
             <div className="relative w-64 h-64 md:w-80 md:h-80 mb-12">
-              <img src="/glass-room.png" alt="Glass Room" className="w-full h-full object-contain drop-shadow-2xl" />
+              <img src={logoSrc} alt="Glass Room" className="w-full h-full object-contain drop-shadow-2xl" />
             </div>
 
             <button
