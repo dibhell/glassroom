@@ -2544,7 +2544,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
     return (
       <div
         ref={containerRef}
-        className="w-full h-96 md:h-[500px] bg-[#2E2F2B] rounded-lg shadow-2xl overflow-hidden relative border border-[#5F665F] cursor-crosshair perspective-container select-none"
+        className="visualizer-frame w-full bg-[#2E2F2B] rounded-lg shadow-2xl overflow-hidden relative border border-[#5F665F] cursor-crosshair perspective-container select-none"
       >
         <canvas
           ref={canvasRef}

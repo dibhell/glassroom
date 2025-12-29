@@ -27,6 +27,14 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #7A8476; /* C7: Moss Green */
       }
+      .visualizer-frame {
+        aspect-ratio: 1.618 / 1;
+      }
+      @media (max-width: 767px) {
+        .visualizer-frame {
+          aspect-ratio: 1 / 1.618;
+        }
+      }
     </style>
   <script type="importmap">
 {
