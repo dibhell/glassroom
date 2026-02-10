@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:junit": "vitest run --reporter=default --reporter=junit --outputFile=reports/vitest-results.xml",
+    "test:report": "python scripts/generate_executive_report.py"
   },
   "dependencies": {
     "lucide-react": "^0.561.0",

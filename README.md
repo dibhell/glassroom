@@ -29,6 +29,8 @@ ktore poruszaja sie w przestrzeni 3D i uruchamiaja dzwieki przy zderzeniach.
 ## Testy (Vitest)
 - Uruchom wszystkie testy: `npm test`
 - Tryb watch: `npm run test:watch`
+- JUnit XML (do raportowania): `npm run test:junit`
+- Generacja raportu executive HTML: `npm run test:report`
 - Stack testowy: Vitest + React Testing Library (UI regression) + testy logiki TypeScript
 
 ## Dokumentacja
