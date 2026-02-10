@@ -26,6 +26,11 @@ ktore poruszaja sie w przestrzeni 3D i uruchamiaja dzwieki przy zderzeniach.
 3. Otworz `http://localhost:5173`
 4. Kliknij "ENTER ROOM", aby odblokowac audio (wymog przegladarek).
 
+## Testy (Vitest)
+- Uruchom wszystkie testy: `npm test`
+- Tryb watch: `npm run test:watch`
+- Stack testowy: Vitest + React Testing Library (UI regression) + testy logiki TypeScript
+
 ## Dokumentacja
 - [docs/STEROWANIE.md](docs/STEROWANIE.md) - opis kontrolek i gestow.
 - [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md) - struktura kodu i modulow.
