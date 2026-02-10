@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python test artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
