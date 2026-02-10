@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import argparse
 import html
+import shutil
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
-
-def to_int(value: str | None) -> int:
-    try:
-        return int(float(value or "0"))
-    except ValueError:
-        return 0
+DEFAULT_XML_PATHS = [
+    "reports/vitest-results.xml",
+    "reports/playwright-results.xml",
+]
 
 
 def to_float(value: str | None) -> float:
@@ -21,75 +20,122 @@ def to_float(value: str | None) -> float:
         return 0.0
 
 
+def source_label_from_path(path: Path) -> str:
+    stem = path.stem.lower()
+    if "playwright" in stem:
+        return "Playwright E2E"
+    if "vitest" in stem:
+        return "Vitest RTL/Unit"
+    return path.stem
+
+
+def iter_suites(root: ET.Element) -> list[ET.Element]:
+    if root.tag == "testsuite":
+        return [root]
+    if root.tag == "testsuites":
+        return list(root.findall("testsuite"))
+    return []
+
+
+def parse_iso_timestamp(value: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate executive HTML test report from JUnit XML.")
-    parser.add_argument("--xml", default="reports/vitest-results.xml", help="Path to JUnit XML report.")
+    parser.add_argument(
+        "--xml",
+        dest="xml_paths",
+        action="append",
+        default=None,
+        help="Path to JUnit XML report. Can be passed multiple times.",
+    )
     parser.add_argument("--out", default="reports/executive_test_report.html", help="Path for generated HTML report.")
     parser.add_argument(
+        "--publish-dir",
+        default="public/reports",
+        help="Directory where generated report and XML artifacts are mirrored.",
+    )
+    parser.add_argument(
         "--version-id",
-        default="Studio Popłoch (c) 2026 | Pan Grzyb | ptr@o2.pl | v1.5.0",
+        default="Studio Pop\u0142och (c) 2026 | Pan Grzyb | ptr@o2.pl | v1.5.0",
         help="Displayed version identifier.",
     )
     parser.add_argument(
         "--types",
-        default="Functional logic, audio interactions, sound source validation, UI regression contract (RTL)",
-        help="Displayed test types line.",
+        default="",
+        help="Displayed test types line. Defaults to inferred suite types.",
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    xml_path = Path(args.xml)
+    xml_paths = [Path(p) for p in (args.xml_paths or DEFAULT_XML_PATHS)]
+    xml_existing = [p for p in xml_paths if p.exists()]
+    xml_missing = [p for p in xml_paths if not p.exists()]
     out_path = Path(args.out)
-    root = ET.parse(xml_path).getroot()
+    publish_dir = Path(args.publish_dir) if args.publish_dir else None
 
-    tests = to_int(root.attrib.get("tests"))
-    failures = to_int(root.attrib.get("failures"))
-    errors = to_int(root.attrib.get("errors"))
-    runtime = to_float(root.attrib.get("time"))
+    if not xml_existing:
+        missing = ", ".join(str(p) for p in xml_paths)
+        raise SystemExit(f"No JUnit XML inputs found. Expected one of: {missing}")
 
+    runtime = 0.0
     cases: list[dict[str, object]] = []
-    hostname = "n/a"
-    run_ts = ""
+    hostnames: set[str] = set()
+    timestamps: list[str] = []
+    sources: set[str] = set()
 
-    for suite in root.findall("testsuite"):
-        if hostname == "n/a":
-            hostname = suite.attrib.get("hostname", "n/a")
-        if not run_ts:
-            run_ts = suite.attrib.get("timestamp", "")
-        for tc in suite.findall("testcase"):
-            name = tc.attrib.get("name", "unknown")
-            classname = tc.attrib.get("classname", suite.attrib.get("name", "unknown"))
-            duration = to_float(tc.attrib.get("time"))
+    for xml_path in xml_existing:
+        source = source_label_from_path(xml_path)
+        sources.add(source)
+        root = ET.parse(xml_path).getroot()
+        runtime += to_float(root.attrib.get("time"))
+        for suite in iter_suites(root):
+            hostname = suite.attrib.get("hostname")
+            if hostname:
+                hostnames.add(hostname)
+            ts = suite.attrib.get("timestamp")
+            if ts:
+                timestamps.append(ts)
+            for tc in suite.findall("testcase"):
+                name = tc.attrib.get("name", "unknown")
+                classname = tc.attrib.get("classname", suite.attrib.get("name", "unknown"))
+                duration = to_float(tc.attrib.get("time"))
 
-            if tc.find("failure") is not None or tc.find("error") is not None:
-                result = "Failed"
-                tone = ("#C9372C", "#FFECEB")
-            elif tc.find("skipped") is not None:
-                result = "Skipped"
-                tone = ("#7F5F01", "#FFF7D6")
-            else:
-                result = "Passed"
-                tone = ("#1F845A", "#DCFFF1")
+                if tc.find("failure") is not None or tc.find("error") is not None:
+                    result = "Failed"
+                    tone = ("#C9372C", "#FFECEB")
+                elif tc.find("skipped") is not None:
+                    result = "Skipped"
+                    tone = ("#7F5F01", "#FFF7D6")
+                else:
+                    result = "Passed"
+                    tone = ("#1F845A", "#DCFFF1")
 
-            cases.append(
-                {
-                    "name": name,
-                    "classname": classname,
-                    "duration": duration,
-                    "result": result,
-                    "tone_fg": tone[0],
-                    "tone_bg": tone[1],
-                    "domain": Path(classname).name,
-                }
-            )
+                cases.append(
+                    {
+                        "name": name,
+                        "classname": classname,
+                        "duration": duration,
+                        "result": result,
+                        "tone_fg": tone[0],
+                        "tone_bg": tone[1],
+                        "domain": Path(classname).name,
+                        "source": source,
+                    }
+                )
 
+    tests = len(cases)
     passed = sum(1 for c in cases if c["result"] == "Passed")
     skipped = sum(1 for c in cases if c["result"] == "Skipped")
     failed_or_error = len(cases) - passed - skipped
-    if tests == 0:
-        tests = len(cases)
+    if runtime <= 0:
+        runtime = sum(float(c["duration"]) for c in cases)
 
     pass_rate = (passed / tests * 100.0) if tests else 0.0
     fail_rate = (failed_or_error / tests * 100.0) if tests else 0.0
@@ -108,18 +154,23 @@ def main() -> None:
         risk_label = "Medium"
         risk_color = "#7F5F01"
 
-    if run_ts:
-        try:
-            run_human = datetime.fromisoformat(run_ts.replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M:%S %z")
-        except ValueError:
-            run_human = run_ts
+    parsed_timestamps = [ts for ts in (parse_iso_timestamp(t) for t in timestamps) if ts is not None]
+    if parsed_timestamps:
+        run_human = max(parsed_timestamps).strftime("%Y-%m-%d %H:%M:%S %z")
     else:
         run_human = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    host_display = ", ".join(sorted(hostnames)) if hostnames else "n/a"
+    inferred_types = " + ".join(sorted(sources)) if sources else "Unknown suite types"
+    test_types = args.types.strip() or inferred_types
 
     cases_sorted = sorted(cases, key=lambda c: float(c["duration"]), reverse=True)
     slowest = "n/a"
     if cases_sorted:
-        slowest = f"{cases_sorted[0]['name']} ({float(cases_sorted[0]['duration']):.3f}s)"
+        slowest = (
+            f"{cases_sorted[0]['name']} [{cases_sorted[0]['source']}] "
+            f"({float(cases_sorted[0]['duration']):.3f}s)"
+        )
 
     by_domain: dict[str, dict[str, int]] = {}
     for c in cases:
@@ -142,6 +193,7 @@ def main() -> None:
         rows_html.append(
             "<tr>"
             f"<td>{html.escape(str(c['name']))}</td>"
+            f"<td>{html.escape(str(c['source']))}</td>"
             f"<td>{html.escape(str(c['domain']))}</td>"
             f"<td>{float(c['duration']):.3f}s</td>"
             f"<td><span class='badge' style='color:{c['tone_fg']}; background:{c['tone_bg']}; border-color:{c['tone_bg']};'>{c['result']}</span></td>"
@@ -154,7 +206,7 @@ def main() -> None:
         color = "#0C66E4" if c["result"] == "Passed" else "#C9372C"
         bars_html.append(
             "<div class='bar-row'>"
-            f"<div class='bar-label'>{html.escape(str(c['name']))}</div>"
+            f"<div class='bar-label'>{html.escape(str(c['name']))} <span style='color:#5E6C84'>[{html.escape(str(c['source']))}]</span></div>"
             "<div class='bar-track'>"
             f"<div class='bar-fill' style='width:{width:.2f}%; background:{color};'></div>"
             "</div>"
@@ -185,6 +237,15 @@ def main() -> None:
         f"#C9372C {pass_rate:.2f}% {pass_rate + fail_rate:.2f}%, "
         f"#7F5F01 {pass_rate + fail_rate:.2f}% 100%);"
     )
+
+    source_links = "".join(
+        f"<a class='pill' href='./{html.escape(p.name)}'>{html.escape(source_label_from_path(p))} XML</a>" for p in xml_existing
+    )
+
+    sources_footer = ", ".join(str(p).replace("\\", "/") for p in xml_existing)
+    if xml_missing:
+        missing_footer = ", ".join(str(p).replace("\\", "/") for p in xml_missing)
+        sources_footer = f"{sources_footer}; missing skipped: {missing_footer}"
 
     html_doc = f"""<!doctype html>
 <html lang='en'>
@@ -237,23 +298,23 @@ def main() -> None:
   <div class='wrap'>
     <section class='hero'>
       <h1>Glassroom Quality Dashboard</h1>
-      <p>Executive snapshot from Vitest suite</p>
-      <p><strong>Test types:</strong> {html.escape(args.types)}</p>
+      <p>Executive snapshot from consolidated Vitest + Playwright suites</p>
+      <p><strong>Test types:</strong> {html.escape(test_types)}</p>
       <p><strong>Version ID:</strong> {html.escape(args.version_id)}</p>
       <div class='hero-row'>
         <span class='pill'>Run: {html.escape(run_human)}</span>
-        <span class='pill'>Host: {html.escape(hostname)}</span>
+        <span class='pill'>Host: {html.escape(host_display)}</span>
         <span class='pill' style='background:{status_bg}; color:{status_tone}; border-color:{status_bg};'>Status: {status}</span>
-        <span class='pill'>Scope: Functional + Audio + Sources + UI</span>
+        <span class='pill'>Scope: Vitest + Playwright regression</span>
         <a class='pill' href='./executive_test_report.html'>v1.5.0 Report HTML</a>
-        <a class='pill' href='./vitest-results.xml'>v1.5.0 JUnit XML</a>
+        {source_links}
       </div>
     </section>
     <section class='kpi-grid'>
-      <div class='kpi'><div class='k'>Total Tests</div><div class='v'>{tests}</div><div class='m'>Vitest + RTL coverage</div></div>
+      <div class='kpi'><div class='k'>Total Tests</div><div class='v'>{tests}</div><div class='m'>Vitest + Playwright coverage</div></div>
       <div class='kpi'><div class='k'>Passed</div><div class='v' style='color:#1F845A'>{passed}</div><div class='m'>Successful checks</div></div>
       <div class='kpi'><div class='k'>Failed/Error</div><div class='v' style='color:#C9372C'>{failed_or_error}</div><div class='m'>Open defects</div></div>
-      <div class='kpi'><div class='k'>Runtime</div><div class='v'>{runtime:.2f}s</div><div class='m'>JUnit total runtime</div></div>
+      <div class='kpi'><div class='k'>Runtime</div><div class='v'>{runtime:.2f}s</div><div class='m'>Consolidated JUnit runtime</div></div>
       <div class='kpi'><div class='k'>Delivery Risk</div><div class='v' style='color:{risk_color}'>{risk_label}</div><div class='m'>Current release quality signal</div></div>
     </section>
     <section class='layout'>
@@ -273,8 +334,8 @@ def main() -> None:
     <section class='panel'><h2>Coverage Domains</h2><div class='domain-grid'>{''.join(domain_html)}</div></section>
     <section class='panel'>
       <h2>Detailed Evidence</h2>
-      <table><tr><th>Test Case</th><th>Domain</th><th>Duration</th><th>Status</th></tr>{''.join(rows_html)}</table>
-      <div class='footer'>Source artifacts: reports/vitest-results.xml, reports/executive_test_report.html</div>
+      <table><tr><th>Test Case</th><th>Source</th><th>Domain</th><th>Duration</th><th>Status</th></tr>{''.join(rows_html)}</table>
+      <div class='footer'>Source artifacts: {html.escape(sources_footer)} | output: {html.escape(str(out_path).replace('\\', '/'))}</div>
     </section>
   </div>
 </body>
@@ -284,6 +345,18 @@ def main() -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html_doc, encoding="utf-8")
     print(f"Wrote {out_path}")
+
+    if publish_dir is not None:
+        publish_dir.mkdir(parents=True, exist_ok=True)
+        publish_report_path = publish_dir / out_path.name
+        if publish_report_path.resolve() != out_path.resolve():
+            publish_report_path.write_text(html_doc, encoding="utf-8")
+            print(f"Mirrored {publish_report_path}")
+        for xml_path in xml_existing:
+            target = publish_dir / xml_path.name
+            if target.resolve() != xml_path.resolve():
+                shutil.copyfile(xml_path, target)
+                print(f"Mirrored {target}")
 
 
 if __name__ == "__main__":

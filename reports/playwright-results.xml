@@ -1,0 +1,16 @@
+<testsuites id="" name="" tests="6" failures="0" skipped="0" errors="0" time="11.16851">
+<testsuite name="smoke.spec.ts" timestamp="2026-02-10T14:22:11.548Z" hostname="chromium" tests="6" failures="0" skipped="0" time="21.317" errors="0">
+<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="4.167">
+</testcase>
+<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="4.254">
+</testcase>
+<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="4.13">
+</testcase>
+<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="4.112">
+</testcase>
+<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="4.288">
+</testcase>
+<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="0.366">
+</testcase>
+</testsuite>
+</testsuites>

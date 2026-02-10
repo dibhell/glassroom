@@ -31,4 +31,3 @@ __pycache__/
 # Playwright artifacts
 playwright-report/
 test-results/
-reports/playwright-results.xml

@@ -1,23 +1,36 @@
-name: Release E2E (Playwright)
+name: Vitest Quality Report
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [ main, master ]
+    paths:
+      - "App.tsx"
+      - "components/**"
+      - "services/**"
+      - "src/**"
+      - "types.ts"
+      - "vitest/**"
+      - "vitest.config.ts"
+      - "vitest.setup.ts"
+      - "scripts/generate_executive_report.py"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/vitest-report.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  e2e:
+  vitest:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'release' && github.event.release.target_commitish || github.ref_name }}
+          ref: ${{ github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -33,14 +46,6 @@ jobs:
         continue-on-error: true
         run: npm run test:junit
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run Playwright tests
-        id: playwright
-        continue-on-error: true
-        run: npm run test:e2e
-
       - name: Generate consolidated executive report
         if: always()
         run: python scripts/generate_executive_report.py
@@ -53,22 +58,6 @@ jobs:
           path: |
             reports/executive_test_report.html
             public/reports/executive_test_report.html
-          if-no-files-found: ignore
-
-      - name: Upload Playwright HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          if-no-files-found: ignore
-
-      - name: Upload Playwright JUnit XML
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-results-xml
-          path: reports/playwright-results.xml
           if-no-files-found: ignore
 
       - name: Upload Vitest JUnit XML
@@ -84,16 +73,16 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/vitest-results.xml reports/playwright-results.xml reports/executive_test_report.html public/reports/
+          git add reports/vitest-results.xml reports/executive_test_report.html public/reports/
           if git diff --cached --quiet; then
             echo "No report artifact changes to commit."
           else
-            git commit -m "chore(ci): refresh release test report artifacts"
-            git push origin HEAD:${{ github.event_name == 'release' && github.event.release.target_commitish || github.ref_name }}
+            git commit -m "chore(ci): refresh vitest quality report artifacts"
+            git push origin HEAD:${{ github.ref_name }}
           fi
 
-      - name: Fail job when tests failed
-        if: steps.vitest.outcome == 'failure' || steps.playwright.outcome == 'failure'
+      - name: Fail job when Vitest failed
+        if: steps.vitest.outcome == 'failure'
         run: |
-          echo "Vitest or Playwright suite failed."
+          echo "Vitest suite failed."
           exit 1
