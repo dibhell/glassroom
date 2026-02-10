@@ -33,6 +33,11 @@ ktore poruszaja sie w przestrzeni 3D i uruchamiaja dzwieki przy zderzeniach.
 - Generacja raportu executive HTML: `npm run test:report`
 - Stack testowy: Vitest + React Testing Library (UI regression) + testy logiki TypeScript
 
+## Testy E2E (Playwright)
+- Instalacja przegladarki testowej: `npm run test:e2e:install`
+- Uruchomienie E2E: `npm run test:e2e`
+- Workflow GitHub: `.github/workflows/release-e2e.yml` (odpala sie dla kazdego nowego release: `release.published`)
+
 ## Dokumentacja
 - [docs/STEROWANIE.md](docs/STEROWANIE.md) - opis kontrolek i gestow.
 - [docs/ARCHITEKTURA.md](docs/ARCHITEKTURA.md) - struktura kodu i modulow.

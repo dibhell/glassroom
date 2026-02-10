@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:junit": "vitest run --reporter=default --reporter=junit --outputFile=reports/vitest-results.xml",
-    "test:report": "python scripts/generate_executive_report.py"
+    "test:report": "python scripts/generate_executive_report.py",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "lucide-react": "^0.561.0",
@@ -19,6 +21,7 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

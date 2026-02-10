@@ -27,3 +27,8 @@ dist-ssr
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Playwright artifacts
+playwright-report/
+test-results/
+reports/playwright-results.xml
