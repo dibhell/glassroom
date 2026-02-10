@@ -3,6 +3,11 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main, master ]
+  workflow_run:
+    workflows:
+      - Vitest Quality Report
+      - Release E2E (Playwright)
+    types: [completed]
 
 permissions:
   contents: read
@@ -15,10 +20,13 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
