@@ -107,6 +107,7 @@ const App: React.FC = () => {
   const [audioNeedsUnlock, setAudioNeedsUnlock] = useState(false);
   const visualizerRef = useRef<VisualizerHandle>(null);
   const logoSrc = `${import.meta.env.BASE_URL}glass-room.png`;
+  const testReportUrl = `${import.meta.env.BASE_URL}reports/executive_test_report.html`;
 
   // Mixer-controlled audio params only (avoid rewriting these on every knob tick)
   const [mixerSettings, setMixerSettings] = useState<AudioSettings>({
@@ -522,7 +523,16 @@ const App: React.FC = () => {
         )}
 
         <footer className="w-full text-center text-[10px] text-[#7A8476] opacity-60 font-mono tracking-widest uppercase mt-auto py-8">
-          Studio Popłoch (c) 2025 | Pan Grzyb | ptr@o2.pl | {VERSION}
+          Studio Popłoch (c) 2025 | Pan Grzyb | ptr@o2.pl |{' '}
+          <a
+            href={testReportUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-[#7A8476] underline-offset-2 hover:text-[#3F453F]"
+            title={`Open test report for ${VERSION}`}
+          >
+            {VERSION}
+          </a>
         </footer>
       </div>
     </div>
