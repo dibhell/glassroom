@@ -523,7 +523,7 @@ const App: React.FC = () => {
         )}
 
         <footer className="w-full text-center text-[10px] text-[#7A8476] opacity-60 font-mono tracking-widest uppercase mt-auto py-8">
-          Studio Popłoch (c) 2025 | Pan Grzyb | ptr@o2.pl |{' '}
+          Studio Popłoch (c) 2026 | Pan Grzyb | ptr@o2.pl |{' '}
           <a
             href={testReportUrl}
             target="_blank"
