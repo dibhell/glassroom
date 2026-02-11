@@ -1,57 +1,57 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="23" failures="0" errors="0" time="1.111599889">
-    <testsuite name="vitest/app.ui.test.tsx" timestamp="2026-02-11T19:44:38.291Z" hostname="runnervmwffz4" tests="4" failures="0" errors="0" skipped="0" time="0.443864469">
-        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; renders version link to test report and updated footer year" time="0.237435484">
+<testsuites name="vitest tests" tests="23" failures="0" errors="0" time="1.280225942">
+    <testsuite name="vitest/app.ui.test.tsx" timestamp="2026-02-11T19:48:42.575Z" hostname="runnervmwffz4" tests="4" failures="0" errors="0" skipped="0" time="0.491056316">
+        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; renders version link to test report and updated footer year" time="0.273413911">
         </testcase>
-        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; shows ENTER ROOM overlay and calls audio bootstrap on click" time="0.061438447">
+        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; shows ENTER ROOM overlay and calls audio bootstrap on click" time="0.076891751">
         </testcase>
-        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; opens and closes the Music panel from icon click and outside click" time="0.071979717">
+        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; opens and closes the Music panel from icon click and outside click" time="0.069132502">
         </testcase>
-        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; propagates music setting changes to audioService.updateMusicSettings" time="0.071181888">
-        </testcase>
-    </testsuite>
-    <testsuite name="vitest/audioEngine.test.ts" timestamp="2026-02-11T19:44:38.292Z" hostname="runnervmwffz4" tests="7" failures="0" errors="0" skipped="0" time="0.01278407">
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; uses synth when it is the only source" time="0.00269219">
-        </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; returns null when no source is available and synth is disabled" time="0.000416667">
-        </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; cycles through mixed sources in round-robin order" time="0.001359455">
-        </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; supports slot search and slot clear operations" time="0.001015865">
-        </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; re-enables synth when switching to SYNTH mode" time="0.000526151">
-        </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps wet controls and lofi params" time="0.004256518">
-        </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; builds constrained intervals for drone scales" time="0.00067618">
+        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; propagates music setting changes to audioService.updateMusicSettings" time="0.07015914">
         </testcase>
     </testsuite>
-    <testsuite name="vitest/mixer.ui.test.tsx" timestamp="2026-02-11T19:44:38.294Z" hostname="runnervmwffz4" tests="4" failures="0" errors="0" skipped="0" time="0.64712137">
-        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; calls transport callbacks on play/stop click" time="0.162147695">
+    <testsuite name="vitest/audioEngine.test.ts" timestamp="2026-02-11T19:48:42.576Z" hostname="runnervmwffz4" tests="7" failures="0" errors="0" skipped="0" time="0.013963315">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; uses synth when it is the only source" time="0.002233786">
         </testcase>
-        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; toggles synth source from data section" time="0.362873399">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; returns null when no source is available and synth is disabled" time="0.000435472">
         </testcase>
-        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; loads sample files from hidden input change" time="0.067100472">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; cycles through mixed sources in round-robin order" time="0.001164902">
         </testcase>
-        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; toggles LO-FI from cassette switch" time="0.053586386">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; supports slot search and slot clear operations" time="0.000842242">
+        </testcase>
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; re-enables synth when switching to SYNTH mode" time="0.000435782">
+        </testcase>
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps wet controls and lofi params" time="0.003740738">
+        </testcase>
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; builds constrained intervals for drone scales" time="0.003432572">
         </testcase>
     </testsuite>
-    <testsuite name="vitest/music.test.ts" timestamp="2026-02-11T19:44:38.294Z" hostname="runnervmwffz4" tests="8" failures="0" errors="0" skipped="0" time="0.00782998">
-        <testcase classname="vitest/music.test.ts" name="music scales &gt; falls back to default scale" time="0.001525975">
+    <testsuite name="vitest/mixer.ui.test.tsx" timestamp="2026-02-11T19:48:42.578Z" hostname="runnervmwffz4" tests="4" failures="0" errors="0" skipped="0" time="0.767447087">
+        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; calls transport callbacks on play/stop click" time="0.183672741">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="music scales &gt; keeps normalized pitch-class intervals" time="0.000309537">
+        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; toggles synth source from data section" time="0.457738525">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="quantize &gt; respects nearest/down/up and no repeat" time="0.000754888">
+        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; loads sample files from hidden input change" time="0.070487574">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="quantize &gt; supports noThirds and leading-tone penalty" time="0.000633752">
+        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; toggles LO-FI from cassette switch" time="0.053551518">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="quantize &gt; falls back to root for non-finite input" time="0.000370511">
+    </testsuite>
+    <testsuite name="vitest/music.test.ts" timestamp="2026-02-11T19:48:42.579Z" hostname="runnervmwffz4" tests="8" failures="0" errors="0" skipped="0" time="0.007759224">
+        <testcase classname="vitest/music.test.ts" name="music scales &gt; falls back to default scale" time="0.00171597">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; maps pitch classes and note names" time="0.000582917">
+        <testcase classname="vitest/music.test.ts" name="music scales &gt; keeps normalized pitch-class intervals" time="0.000327701">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; converts midi and frequency safely" time="0.000524558">
+        <testcase classname="vitest/music.test.ts" name="quantize &gt; respects nearest/down/up and no repeat" time="0.000816954">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; snaps midi to target pitch class" time="0.000269292">
+        <testcase classname="vitest/music.test.ts" name="quantize &gt; supports noThirds and leading-tone penalty" time="0.000625367">
+        </testcase>
+        <testcase classname="vitest/music.test.ts" name="quantize &gt; falls back to root for non-finite input" time="0.000415475">
+        </testcase>
+        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; maps pitch classes and note names" time="0.000628803">
+        </testcase>
+        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; converts midi and frequency safely" time="0.000540157">
+        </testcase>
+        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; snaps midi to target pitch class" time="0.000332911">
         </testcase>
     </testsuite>
 </testsuites>
