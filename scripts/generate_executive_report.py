@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import argparse
 import html
+import os
+import re
 import shutil
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from collections import defaultdict
+from datetime import UTC, datetime
 from pathlib import Path
 
 DEFAULT_XML_PATHS = [
     "reports/vitest-results.xml",
     "reports/playwright-results.xml",
 ]
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 
 
 def to_float(value: str | None) -> float:
@@ -44,6 +48,84 @@ def parse_iso_timestamp(value: str) -> datetime | None:
         return None
 
 
+def source_key_from_label(source: str) -> str:
+    lowered = source.lower()
+    if "playwright" in lowered:
+        return "playwright"
+    if "vitest" in lowered:
+        return "vitest"
+    return re.sub(r"[^a-z0-9]+", "-", lowered).strip("-") or "suite"
+
+
+def build_run_id() -> str:
+    timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%SZ")
+    sha_short = os.getenv("GITHUB_SHA", "local")[:7]
+    run_id = os.getenv("GITHUB_RUN_ID")
+    run_attempt = os.getenv("GITHUB_RUN_ATTEMPT")
+    parts = [timestamp, sha_short]
+    if run_id:
+        parts.append(f"run{run_id}")
+    if run_attempt:
+        parts.append(f"a{run_attempt}")
+    return "-".join(parts)
+
+
+def rel_href(base_dir: Path, target: Path) -> str:
+    try:
+        return Path(os.path.relpath(target, start=base_dir)).as_posix()
+    except ValueError:
+        return target.as_posix()
+
+
+def collect_playwright_screenshots(source_dir: Path, target_dir: Path) -> list[Path]:
+    copied: list[Path] = []
+    if not source_dir.exists():
+        return copied
+
+    for file_path in sorted(source_dir.rglob("*")):
+        if not file_path.is_file() or file_path.suffix.lower() not in IMAGE_EXTENSIONS:
+            continue
+        relative = file_path.relative_to(source_dir)
+        target = target_dir / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(file_path, target)
+        copied.append(target)
+    return copied
+
+
+def write_screenshot_index_html(path: Path, screenshot_paths: list[Path], run_dir: Path) -> None:
+    if screenshot_paths:
+        items = "\n".join(
+            f"<li><a href='./{html.escape(rel_href(run_dir, p))}'>{html.escape(rel_href(run_dir, p))}</a></li>"
+            for p in screenshot_paths
+        )
+        list_html = f"<ul>{items}</ul>"
+    else:
+        list_html = "<p>No Playwright screenshots found for this run.</p>"
+
+    doc = f"""<!doctype html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1' />
+  <title>Playwright Screenshot Index</title>
+  <style>
+    body {{ font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin: 22px; color: #172B4D; }}
+    h1 {{ margin-top: 0; }}
+    a {{ color: #0C66E4; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+  </style>
+</head>
+<body>
+  <h1>Playwright Screenshot Index</h1>
+  <p>Run folder: {html.escape(run_dir.as_posix())}</p>
+  {list_html}
+</body>
+</html>
+"""
+    path.write_text(doc, encoding="utf-8")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate executive HTML test report from JUnit XML.")
     parser.add_argument(
@@ -69,6 +151,16 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Displayed test types line. Defaults to inferred suite types.",
     )
+    parser.add_argument(
+        "--history-root",
+        default="reports/run-history",
+        help="Directory where per-run evidence files are stored.",
+    )
+    parser.add_argument(
+        "--playwright-artifacts-dir",
+        default="test-results",
+        help="Directory with Playwright artifacts (screenshots).",
+    )
     return parser.parse_args()
 
 
@@ -79,6 +171,8 @@ def main() -> None:
     xml_missing = [p for p in xml_paths if not p.exists()]
     out_path = Path(args.out)
     publish_dir = Path(args.publish_dir) if args.publish_dir else None
+    history_root = Path(args.history_root)
+    playwright_artifacts_dir = Path(args.playwright_artifacts_dir)
 
     if not xml_existing:
         missing = ", ".join(str(p) for p in xml_paths)
@@ -242,6 +336,123 @@ def main() -> None:
         f"<a class='pill' href='./{html.escape(p.name)}'>{html.escape(source_label_from_path(p))} XML</a>" for p in xml_existing
     )
 
+    run_id = build_run_id()
+    run_dir = history_root / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    summary_by_source: dict[str, dict[str, float | int]] = defaultdict(
+        lambda: {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "duration": 0.0}
+    )
+    failed_names_by_source: dict[str, list[str]] = defaultdict(list)
+    for c in cases:
+        source_name = str(c["source"])
+        stats = summary_by_source[source_name]
+        stats["total"] += 1
+        stats["duration"] += float(c["duration"])
+        if c["result"] == "Passed":
+            stats["passed"] += 1
+        elif c["result"] == "Skipped":
+            stats["skipped"] += 1
+        else:
+            stats["failed"] += 1
+            failed_names_by_source[source_name].append(str(c["name"]))
+
+    run_meta_path = run_dir / "run-meta.txt"
+    run_meta_path.write_text(
+        "\n".join(
+            [
+                f"run_id: {run_id}",
+                f"generated_at: {datetime.now(UTC).isoformat()}",
+                f"status: {status}",
+                f"tests: {tests}",
+                f"passed: {passed}",
+                f"failed_or_error: {failed_or_error}",
+                f"skipped: {skipped}",
+                f"runtime_seconds: {runtime:.3f}",
+                f"sources: {inferred_types}",
+                f"host: {host_display}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    suite_summary_paths: list[tuple[str, Path]] = []
+    for source_name in sorted(summary_by_source):
+        source_key = source_key_from_label(source_name)
+        stats = summary_by_source[source_name]
+        summary_path = run_dir / f"{source_key}-summary.txt"
+        failed_cases = failed_names_by_source.get(source_name, [])
+        failed_lines = (
+            "\n".join(f"  - {name}" for name in failed_cases)
+            if failed_cases
+            else "  - none"
+        )
+        summary_path.write_text(
+            "\n".join(
+                [
+                    f"source: {source_name}",
+                    f"run_id: {run_id}",
+                    f"total: {int(stats['total'])}",
+                    f"passed: {int(stats['passed'])}",
+                    f"failed_or_error: {int(stats['failed'])}",
+                    f"skipped: {int(stats['skipped'])}",
+                    f"duration_seconds: {float(stats['duration']):.3f}",
+                    "failed_test_cases:",
+                    failed_lines,
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        suite_summary_paths.append((source_name, summary_path))
+
+    copied_xml_paths: list[tuple[str, Path]] = []
+    for xml_path in xml_existing:
+        copied = run_dir / xml_path.name
+        shutil.copyfile(xml_path, copied)
+        copied_xml_paths.append((source_label_from_path(xml_path), copied))
+
+    copied_screenshots = collect_playwright_screenshots(
+        playwright_artifacts_dir,
+        run_dir / "playwright-screenshots",
+    )
+    screenshot_txt_path = run_dir / "playwright-screenshots.txt"
+    screenshot_txt_path.write_text(
+        ("\n".join(rel_href(run_dir, p) for p in copied_screenshots) + "\n")
+        if copied_screenshots
+        else "No Playwright screenshots found for this run.\n",
+        encoding="utf-8",
+    )
+    screenshot_html_path = run_dir / "playwright-screenshots.html"
+    write_screenshot_index_html(screenshot_html_path, copied_screenshots, run_dir)
+
+    evidence_links: list[tuple[str, str]] = [
+        ("Run metadata TXT", f"./{rel_href(out_path.parent, run_meta_path)}"),
+        ("Playwright screenshots TXT", f"./{rel_href(out_path.parent, screenshot_txt_path)}"),
+        (
+            f"Playwright screenshots HTML ({len(copied_screenshots)})",
+            f"./{rel_href(out_path.parent, screenshot_html_path)}",
+        ),
+    ]
+    for source_name, summary_path in suite_summary_paths:
+        evidence_links.append(
+            (
+                f"{source_name} summary TXT",
+                f"./{rel_href(out_path.parent, summary_path)}",
+            )
+        )
+    for source_name, copied_xml in copied_xml_paths:
+        evidence_links.append(
+            (
+                f"{source_name} XML snapshot",
+                f"./{rel_href(out_path.parent, copied_xml)}",
+            )
+        )
+    evidence_links_html = "".join(
+        f"<a class='evidence-link' href='{html.escape(href)}'>{html.escape(label)}</a>" for label, href in evidence_links
+    )
+
     sources_footer = ", ".join(str(p).replace("\\", "/") for p in xml_existing)
     if xml_missing:
         missing_footer = ", ".join(str(p).replace("\\", "/") for p in xml_missing)
@@ -286,6 +497,10 @@ def main() -> None:
     .domain-card {{ background: #FAFBFC; border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }}
     .domain-title {{ font-weight: 600; margin-bottom: 0; font-size: 13px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }}
     .domain-meta {{ margin-top: 0; color: var(--muted); font-size: 12px; }}
+    .hint {{ color: var(--muted); font-size: 13px; margin: 0 0 10px; }}
+    .evidence-grid {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+    .evidence-link {{ display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; text-decoration: none; color: #0C66E4; background: #E9F2FF; border: 1px solid #CCE0FF; }}
+    .evidence-link:hover {{ background: #DDEBFF; }}
     table {{ width: 100%; border-collapse: collapse; font-size: 14px; }} th, td {{ text-align: left; border-bottom: 1px solid var(--line); padding: 10px 8px; vertical-align: top; }} th {{ color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }}
     .badge {{ display: inline-block; font-size: 12px; border-radius: 999px; border: 1px solid; padding: 2px 10px; font-weight: 600; }} .footer {{ margin-top: 10px; color: var(--muted); font-size: 12px; }}
     @media (max-width: 1100px) {{
@@ -333,9 +548,14 @@ def main() -> None:
     </section>
     <section class='panel'><h2>Coverage Domains</h2><div class='domain-grid'>{''.join(domain_html)}</div></section>
     <section class='panel'>
+      <h2>Run Evidence</h2>
+      <p class='hint'>Repository snapshots for this execution (TXT summaries, XML snapshots, and Playwright screenshots index).</p>
+      <div class='evidence-grid'>{evidence_links_html}</div>
+    </section>
+    <section class='panel'>
       <h2>Detailed Evidence</h2>
       <table><tr><th>Test Case</th><th>Source</th><th>Domain</th><th>Duration</th><th>Status</th></tr>{''.join(rows_html)}</table>
-      <div class='footer'>Source artifacts: {html.escape(sources_footer)} | output: {html.escape(str(out_path).replace('\\', '/'))}</div>
+      <div class='footer'>Source artifacts: {html.escape(sources_footer)} | run evidence: {html.escape(run_dir.as_posix())} | output: {html.escape(str(out_path).replace('\\', '/'))}</div>
     </section>
   </div>
 </body>
@@ -352,6 +572,11 @@ def main() -> None:
         if publish_report_path.resolve() != out_path.resolve():
             publish_report_path.write_text(html_doc, encoding="utf-8")
             print(f"Mirrored {publish_report_path}")
+        run_dir_relative = Path(rel_href(out_path.parent, run_dir))
+        publish_run_dir = publish_dir / run_dir_relative
+        if publish_run_dir.resolve() != run_dir.resolve():
+            shutil.copytree(run_dir, publish_run_dir, dirs_exist_ok=True)
+            print(f"Mirrored {publish_run_dir}")
         for xml_path in xml_existing:
             target = publish_dir / xml_path.name
             if target.resolve() != xml_path.resolve():
