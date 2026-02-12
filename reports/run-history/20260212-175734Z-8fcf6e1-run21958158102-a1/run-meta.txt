@@ -1,0 +1,10 @@
+run_id: 20260212-175734Z-8fcf6e1-run21958158102-a1
+generated_at: 2026-02-12T17:57:34.986510+00:00
+status: PASS
+tests: 29
+passed: 29
+failed_or_error: 0
+skipped: 0
+runtime_seconds: 10.202
+sources: Playwright E2E + Vitest RTL/Unit
+host: chromium, runnervmjduv7
