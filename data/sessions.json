@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1b84c1d7-98f2-4e1f-8fd9-c17f9a1f06e2",
+    "title": "Morning Sound Check",
+    "host": "Piotr",
+    "startsAt": "2026-03-11T08:00:00.000Z",
+    "durationMinutes": 45,
+    "notes": "Kalibracja miksera i test sygnału wejściowego.",
+    "energy": "focus",
+    "createdAt": "2026-03-10T09:15:00.000Z"
+  },
+  {
+    "id": "3f2f4f5a-7df0-4557-8a6b-e7ca9b74a1be",
+    "title": "Evening Ambient Session",
+    "host": "Ania",
+    "startsAt": "2026-03-11T18:30:00.000Z",
+    "durationMinutes": 60,
+    "notes": "Set lo-fi + synth pad transitions.",
+    "energy": "calm",
+    "createdAt": "2026-03-10T09:20:00.000Z"
+  }
+]

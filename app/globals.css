@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: #040d0d;
+  --foreground: #e9fff4;
+  --font-display:
+    "Sora", "Space Grotesk", "Avenir Next", "Segoe UI Variable", "Trebuchet MS",
+    sans-serif;
+  --font-mono:
+    "IBM Plex Mono", "JetBrains Mono", "Cascadia Code", "Fira Code", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(22, 163, 74, 0.28), transparent 40%),
+    radial-gradient(circle at 85% 15%, rgba(245, 158, 11, 0.2), transparent 35%),
+    linear-gradient(160deg, #030706 0%, #051717 55%, #031212 100%);
+  color: var(--foreground);
+  font-family: var(--font-display), sans-serif;
+}
+
+.background-orb {
+  position: absolute;
+  z-index: 0;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.background-orb-left {
+  width: 18rem;
+  height: 18rem;
+  left: -6rem;
+  top: 3rem;
+  background: rgba(16, 185, 129, 0.8);
+  animation: drift-left 10s ease-in-out infinite;
+}
+
+.background-orb-right {
+  width: 22rem;
+  height: 22rem;
+  right: -8rem;
+  top: 9rem;
+  background: rgba(251, 191, 36, 0.65);
+  animation: drift-right 12s ease-in-out infinite;
+}
+
+@keyframes drift-left {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-18px) scale(1.05);
+  }
+}
+
+@keyframes drift-right {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(14px) scale(0.96);
+  }
+}
