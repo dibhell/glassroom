@@ -1,0 +1,9 @@
+source: Playwright E2E
+run_id: 20260310-190846Z-d8ab6f6-run22919722723-a1
+total: 6
+passed: 6
+failed_or_error: 0
+skipped: 0
+duration_seconds: 11.668
+failed_test_cases:
+  - none
