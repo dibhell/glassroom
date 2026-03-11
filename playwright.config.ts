@@ -1,9 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const isCi = Boolean(process.env.CI);
-const baseURL = process.env.GITHUB_ACTIONS
-  ? "http://127.0.0.1:4173/glassroom"
-  : "http://127.0.0.1:4173";
 
 export default defineConfig({
   testDir: "./playwright",
@@ -20,7 +17,7 @@ export default defineConfig({
     ["junit", { outputFile: "reports/playwright-results.xml" }],
   ],
   use: {
-    baseURL,
+    baseURL: "http://127.0.0.1:4173",
     screenshot: "on",
     trace: "on-first-retry",
   },

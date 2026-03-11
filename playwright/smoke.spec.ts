@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+const appPrefix = process.env.GITHUB_ACTIONS ? "/glassroom" : "";
+
+const gotoApp = async (page: import("@playwright/test").Page, path = "/") => {
+  await page.goto(`${appPrefix}${path}`);
+};
+
 const enterRoom = async (page: import("@playwright/test").Page) => {
   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
   await expect(enterButton).toBeVisible();
@@ -8,7 +14,7 @@ const enterRoom = async (page: import("@playwright/test").Page) => {
 };
 
 test("home renders core UI and version report link", async ({ page }) => {
-  await page.goto("./");
+  await gotoApp(page, "/");
 
   await expect(page.getByRole("heading", { name: /Glass Room/i })).toBeVisible();
   await enterRoom(page);
@@ -20,7 +26,7 @@ test("home renders core UI and version report link", async ({ page }) => {
 });
 
 test("clicking v1.5.0 opens executive report", async ({ context, page }) => {
-  await page.goto("./");
+  await gotoApp(page, "/");
   await enterRoom(page);
 
   const versionLink = page.locator('a[title*="Open test report for"]').first();
@@ -34,7 +40,7 @@ test("clicking v1.5.0 opens executive report", async ({ context, page }) => {
 });
 
 test("main control groups are visible after entering room", async ({ page }) => {
-  await page.goto("./");
+  await gotoApp(page, "/");
   await enterRoom(page);
 
   await expect(page.getByText("Physics", { exact: true })).toBeVisible();
@@ -44,7 +50,7 @@ test("main control groups are visible after entering room", async ({ page }) => 
 });
 
 test("music panel can be opened, changed and closed", async ({ page }) => {
-  await page.goto("./");
+  await gotoApp(page, "/");
   await enterRoom(page);
 
   const musicButton = page.getByRole("button", { name: /music/i });
@@ -60,7 +66,7 @@ test("music panel can be opened, changed and closed", async ({ page }) => {
 });
 
 test("data section synth toggle switches ON and OFF", async ({ page }) => {
-  await page.goto("./");
+  await gotoApp(page, "/");
   await enterRoom(page);
 
   const synthOn = page.getByRole("button", { name: /SYNTH ON/i });
@@ -70,6 +76,6 @@ test("data section synth toggle switches ON and OFF", async ({ page }) => {
 });
 
 test("vitest junit artifact is reachable", async ({ page }) => {
-  await page.goto("./reports/vitest-results.xml");
+  await gotoApp(page, "/reports/vitest-results.xml");
   await expect(page.locator("body")).toContainText("testsuites");
 });
