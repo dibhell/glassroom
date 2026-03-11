@@ -12,6 +12,8 @@ on:
       - "vitest/**"
       - "vitest.config.ts"
       - "vitest.setup.ts"
+      - "playwright/**"
+      - "playwright.config.ts"
       - "scripts/generate_executive_report.py"
       - "package.json"
       - "package-lock.json"

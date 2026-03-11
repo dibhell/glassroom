@@ -8,7 +8,7 @@ const enterRoom = async (page: import("@playwright/test").Page) => {
 };
 
 test("home renders core UI and version report link", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./");
 
   await expect(page.getByRole("heading", { name: /Glass Room/i })).toBeVisible();
   await enterRoom(page);
@@ -20,7 +20,7 @@ test("home renders core UI and version report link", async ({ page }) => {
 });
 
 test("clicking v1.5.0 opens executive report", async ({ context, page }) => {
-  await page.goto("/");
+  await page.goto("./");
   await enterRoom(page);
 
   const versionLink = page.locator('a[title*="Open test report for"]').first();
@@ -34,7 +34,7 @@ test("clicking v1.5.0 opens executive report", async ({ context, page }) => {
 });
 
 test("main control groups are visible after entering room", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./");
   await enterRoom(page);
 
   await expect(page.getByText("Physics", { exact: true })).toBeVisible();
@@ -44,7 +44,7 @@ test("main control groups are visible after entering room", async ({ page }) => 
 });
 
 test("music panel can be opened, changed and closed", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./");
   await enterRoom(page);
 
   const musicButton = page.getByRole("button", { name: /music/i });
@@ -60,7 +60,7 @@ test("music panel can be opened, changed and closed", async ({ page }) => {
 });
 
 test("data section synth toggle switches ON and OFF", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./");
   await enterRoom(page);
 
   const synthOn = page.getByRole("button", { name: /SYNTH ON/i });
@@ -70,6 +70,6 @@ test("data section synth toggle switches ON and OFF", async ({ page }) => {
 });
 
 test("vitest junit artifact is reachable", async ({ page }) => {
-  await page.goto("/reports/vitest-results.xml");
+  await page.goto("./reports/vitest-results.xml");
   await expect(page.locator("body")).toContainText("testsuites");
 });
