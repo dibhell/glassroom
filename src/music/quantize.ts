@@ -103,6 +103,6 @@ const runDevChecks = () => {
   console.assert(allowed.join(',') === expected.join(','), 'quantize: D dorian pitch classes mismatch');
 };
 
-if (import.meta.env && import.meta.env.DEV) {
+if (process.env.NODE_ENV !== 'production') {
   runDevChecks();
 }

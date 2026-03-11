@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Knob } from './components/Knob';
 import { Mixer } from './components/Mixer';
@@ -37,6 +39,11 @@ const DEFAULT_SCALE_VALUE = SCALE_COUNT > 1 ? DEFAULT_SCALE_INDEX / (SCALE_COUNT
 const clampScaleIndex = (index: number) => Math.max(0, Math.min(SCALE_COUNT - 1, index));
 const scaleValueFromIndex = (index: number) => (SCALE_COUNT > 1 ? index / (SCALE_COUNT - 1) : 0);
 const scaleIndexFromValue = (value: number) => clampScaleIndex(Math.round(value * (SCALE_COUNT - 1)));
+const FALLBACK_SCALE = SCALES[DEFAULT_SCALE_INDEX] ?? SCALES[0];
+
+if (!FALLBACK_SCALE) {
+  throw new Error('SCALES cannot be empty.');
+}
 
 type IconType = React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
@@ -106,8 +113,9 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioNeedsUnlock, setAudioNeedsUnlock] = useState(false);
   const visualizerRef = useRef<VisualizerHandle>(null);
-  const logoSrc = `${import.meta.env.BASE_URL}glass-room.png`;
-  const testReportUrl = `${import.meta.env.BASE_URL}reports/executive_test_report.html`;
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+  const logoSrc = `${basePath}/glass-room.png`;
+  const testReportUrl = `${basePath}/reports/executive_test_report.html`;
 
   // Mixer-controlled audio params only (avoid rewriting these on every knob tick)
   const [mixerSettings, setMixerSettings] = useState<AudioSettings>({
@@ -283,7 +291,7 @@ const App: React.FC = () => {
   }, [hasInteracted]);
 
   const selectedScale = useMemo(
-    () => SCALES.find((scale) => scale.id === musicSettings.scaleId) ?? SCALES[DEFAULT_SCALE_INDEX],
+    () => SCALES.find((scale) => scale.id === musicSettings.scaleId) ?? FALLBACK_SCALE,
     [musicSettings.scaleId]
   );
 
@@ -296,10 +304,10 @@ const App: React.FC = () => {
 
   const setScaleByIndex = useCallback((index: number) => {
     const clamped = clampScaleIndex(index);
-    const scale = SCALES[clamped] ?? SCALES[DEFAULT_SCALE_INDEX];
+    const scale = SCALES[clamped] ?? FALLBACK_SCALE;
     setMusicSettings((prev) => ({
       ...prev,
-      scaleId: scale?.id ?? DEFAULT_SCALE_ID,
+      scaleId: scale.id,
       scaleIndex: scaleValueFromIndex(clamped),
     }));
   }, []);

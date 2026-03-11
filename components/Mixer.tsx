@@ -583,7 +583,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                 <Square size={14} className="fill-current" />
               </button>
               <button
-                onClick={handleRecordToggle}
+                onClick={() => {
+                  void handleRecordToggle();
+                }}
                 onPointerDown={handleRecordPointerDown()}
                 disabled={recordDisabled}
                 className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border ${isRecording ? 'border-[#7A8476] bg-[#7A8476] text-[#F2F2F0]' : 'border-[#B9BCB7] bg-[#F2F2F0] text-[#5F665F] hover:bg-[#B9BCB7]'} flex items-center justify-center transition-all ${recordDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -787,7 +789,9 @@ export const Mixer: React.FC<MixerProps> = ({ settings, setSettings, isPlaying, 
                     <React.Fragment key={`row-${idx}`}>
                       <button
                         type="button"
-                        onClick={() => handleRecordToggle(idx)}
+                        onClick={() => {
+                          void handleRecordToggle(idx);
+                        }}
                         onPointerDown={handleRecordPointerDown(idx)}
                         className={`w-full h-[16px] rounded-full border px-3 flex items-center justify-center text-[9px] tracking-widest uppercase leading-none transition-all ${
                           hasMic ? 'bg-[#7A8476] text-[#F2F2F0] border-[#7A8476]' : 'bg-[#F2F2F0] text-[#5F665F] border-[#B9BCB7] hover:bg-white'

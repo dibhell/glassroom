@@ -556,7 +556,7 @@ class AudioEngine {
   private static extractPeakDb(analyser: AnalyserNode | null): number {
     if (!analyser) return -100;
     const data = new Float32Array(analyser.fftSize);
-    analyser.getFloatTimeDomainData(data);
+    analyser.getFloatTimeDomainData(data as Float32Array<ArrayBuffer>);
     let max = 0;
     for (let i = 0; i < data.length; i++) {
       const v = Math.abs(data[i]);
@@ -574,7 +574,7 @@ class AudioEngine {
     const size = analyser.fftSize;
     let data = buffer;
     if (!data || data.length !== size) data = new Float32Array(size);
-    analyser.getFloatTimeDomainData(data);
+    analyser.getFloatTimeDomainData(data as Float32Array<ArrayBuffer>);
     let max = 0;
     for (let i = 0; i < data.length; i++) {
       const v = Math.abs(data[i]);
@@ -608,8 +608,8 @@ class AudioEngine {
     if (!this.stereoBufferR || this.stereoBufferR.length !== size) {
       this.stereoBufferR = new Float32Array(size);
     }
-    this.stereoAnalyserL.getFloatTimeDomainData(this.stereoBufferL);
-    this.stereoAnalyserR.getFloatTimeDomainData(this.stereoBufferR);
+    this.stereoAnalyserL.getFloatTimeDomainData(this.stereoBufferL as Float32Array<ArrayBuffer>);
+    this.stereoAnalyserR.getFloatTimeDomainData(this.stereoBufferR as Float32Array<ArrayBuffer>);
     return { left: this.stereoBufferL, right: this.stereoBufferR };
   }
 
@@ -724,8 +724,11 @@ class AudioEngine {
   private async ensureLofiWorklet(): Promise<void> {
     if (!this.ctx || !this.ctx.audioWorklet || this.lofiWorkletLoaded) return;
     if (this.lofiWorkletLoading) return this.lofiWorkletLoading;
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+    const modulePath = `${basePath}/worklets/lofiCrusher.worklet.js`;
+
     this.lofiWorkletLoading = this.ctx.audioWorklet
-      .addModule(new URL('../src/audio/worklets/lofiCrusher.worklet.js', import.meta.url))
+      .addModule(modulePath)
       .then(() => {
         this.lofiWorkletLoaded = true;
       })

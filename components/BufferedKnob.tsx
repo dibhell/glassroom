@@ -104,8 +104,21 @@ export function BufferedKnob({
     };
   }, [commitNow]);
 
-  useEffect(() => () => timerRef.current && clearTimeout(timerRef.current), []);
-  useEffect(() => () => rafRef.current && cancelAnimationFrame(rafRef.current), []);
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Knob
