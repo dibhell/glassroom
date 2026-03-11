@@ -1,0 +1,16 @@
+playwright-screenshots/smoke-clicking-v1-5-0-opens-executive-report-chromium/test-failed-1.png
+playwright-screenshots/smoke-clicking-v1-5-0-opens-executive-report-chromium-retry1/test-failed-1.png
+playwright-screenshots/smoke-clicking-v1-5-0-opens-executive-report-chromium-retry2/test-failed-1.png
+playwright-screenshots/smoke-data-section-synth-toggle-switches-ON-and-OFF-chromium/test-failed-1.png
+playwright-screenshots/smoke-data-section-synth-toggle-switches-ON-and-OFF-chromium-retry1/test-failed-1.png
+playwright-screenshots/smoke-data-section-synth-toggle-switches-ON-and-OFF-chromium-retry2/test-failed-1.png
+playwright-screenshots/smoke-home-renders-core-UI-and-version-report-link-chromium/test-failed-1.png
+playwright-screenshots/smoke-home-renders-core-UI-and-version-report-link-chromium-retry1/test-failed-1.png
+playwright-screenshots/smoke-home-renders-core-UI-and-version-report-link-chromium-retry2/test-failed-1.png
+playwright-screenshots/smoke-main-control-groups-are-visible-after-entering-room-chromium/test-failed-1.png
+playwright-screenshots/smoke-main-control-groups-are-visible-after-entering-room-chromium-retry1/test-failed-1.png
+playwright-screenshots/smoke-main-control-groups-are-visible-after-entering-room-chromium-retry2/test-failed-1.png
+playwright-screenshots/smoke-music-panel-can-be-opened-changed-and-closed-chromium/test-failed-1.png
+playwright-screenshots/smoke-music-panel-can-be-opened-changed-and-closed-chromium-retry1/test-failed-1.png
+playwright-screenshots/smoke-music-panel-can-be-opened-changed-and-closed-chromium-retry2/test-failed-1.png
+playwright-screenshots/smoke-vitest-junit-artifact-is-reachable-chromium/test-finished-1.png

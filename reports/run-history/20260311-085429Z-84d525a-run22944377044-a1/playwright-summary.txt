@@ -1,0 +1,13 @@
+source: Playwright E2E
+run_id: 20260311-085429Z-84d525a-run22944377044-a1
+total: 6
+passed: 1
+failed_or_error: 5
+skipped: 0
+duration_seconds: 79.122
+failed_test_cases:
+  - home renders core UI and version report link
+  - clicking v1.5.0 opens executive report
+  - main control groups are visible after entering room
+  - music panel can be opened, changed and closed
+  - data section synth toggle switches ON and OFF
