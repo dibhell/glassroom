@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
 
-const isGithubActions = process.env.GITHUB_ACTIONS === "true";
-const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
-const basePath = isGithubActions && repositoryName ? `/${repositoryName}` : "";
+const rawBasePath = process.env.PAGES_BASE_PATH?.trim() ?? "";
+const basePath = rawBasePath
+  ? rawBasePath.startsWith("/")
+    ? rawBasePath
+    : `/${rawBasePath}`
+  : "";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,

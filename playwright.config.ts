@@ -1,13 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const isCi = Boolean(process.env.CI);
-const webServerEnv = isCi
-  ? {
-      ...process.env,
-      GITHUB_ACTIONS: "true",
-      GITHUB_REPOSITORY: process.env.GITHUB_REPOSITORY ?? "dibhell/glassroom",
-    }
-  : process.env;
 
 export default defineConfig({
   testDir: "./playwright",
@@ -39,6 +32,5 @@ export default defineConfig({
     url: "http://127.0.0.1:4173",
     timeout: 120_000,
     reuseExistingServer: !process.env.CI,
-    env: webServerEnv,
   },
 });

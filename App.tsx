@@ -259,18 +259,34 @@ const App: React.FC = () => {
   }, [musicSettings]);
 
   const handleStart = useCallback(async () => {
-    await audioService.primeFromGesture();
-
     const next = !isPlaying;
     setIsPlaying(next);
 
+    // Dismiss intro overlay immediately, even if audio APIs are blocked.
     if (!hasInteracted) {
       setHasInteracted(true);
-      await audioService.init();
     }
 
-    if (next) await audioService.resume();
-    else await audioService.suspend();
+    try {
+      await audioService.primeFromGesture();
+    } catch {
+      // ignore: some headless/locked contexts reject gesture priming
+    }
+
+    if (!hasInteracted) {
+      try {
+        await audioService.init();
+      } catch {
+        // ignore and allow UI to continue
+      }
+    }
+
+    try {
+      if (next) await audioService.resume();
+      else await audioService.suspend();
+    } catch {
+      // ignore and expose unlock hint below
+    }
 
     const state = audioService.getContextState();
     setAudioNeedsUnlock(next && state !== 'running');
@@ -284,7 +300,11 @@ const App: React.FC = () => {
   }, []);
 
   const handleUnlockAudio = useCallback(async () => {
-    await audioService.primeFromGesture();
+    try {
+      await audioService.primeFromGesture();
+    } catch {
+      // ignore: keep unlock CTA visible when priming fails
+    }
     if (!hasInteracted) setHasInteracted(true);
     const state = audioService.getContextState();
     setAudioNeedsUnlock(state !== 'running');

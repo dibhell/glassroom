@@ -42,6 +42,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          PAGES_BASE_PATH: /${{ github.event.repository.name }}
 
       - name: Ensure .nojekyll
         run: touch out/.nojekyll
