@@ -1,0 +1,14 @@
+source: Playwright E2E
+run_id: 20260311-090018Z-f0ef2e3-run22944581804-a1
+total: 6
+passed: 0
+failed_or_error: 6
+skipped: 0
+duration_seconds: 92.497
+failed_test_cases:
+  - home renders core UI and version report link
+  - clicking v1.5.0 opens executive report
+  - main control groups are visible after entering room
+  - music panel can be opened, changed and closed
+  - data section synth toggle switches ON and OFF
+  - vitest junit artifact is reachable

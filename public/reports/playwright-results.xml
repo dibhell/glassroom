@@ -1,32 +1,29 @@
-<testsuites id="" name="" tests="6" failures="5" skipped="0" errors="0" time="110.871515">
-<testsuite name="smoke.spec.ts" timestamp="2026-03-11T08:52:50.938Z" hostname="chromium" tests="6" failures="5" skipped="0" time="79.122" errors="0">
-<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="15.818">
-<failure message="smoke.spec.ts:10:1 home renders core UI and version report link" type="FAILURE">
-<![CDATA[  [chromium] › smoke.spec.ts:10:1 › home renders core UI and version report link ───────────────────
+<testsuites id="" name="" tests="6" failures="6" skipped="0" errors="0" time="127.039973">
+<testsuite name="smoke.spec.ts" timestamp="2026-03-11T08:58:24.340Z" hostname="chromium" tests="6" failures="6" skipped="0" time="92.497" errors="0">
+<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="15.402">
+<failure message="smoke.spec.ts:16:1 home renders core UI and version report link" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:16:1 › home renders core UI and version report link ───────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('heading', { name: /Glass Room/i })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
-      - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: /Glass Room/i })
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
-         |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:14:3
+      17 |   await gotoApp(page, "/");
+      18 |
+    > 19 |   await expect(page.getByRole("heading", { name: /Glass Room/i })).toBeVisible();
+         |                                                                    ^
+      20 |   await enterRoom(page);
+      21 |
+      22 |   const versionLink = page.locator('a[title*="Open test report for"]').first();
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:19:68
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-home-renders-core-UI-and-version-report-link-chromium/test-failed-1.png
@@ -36,29 +33,26 @@
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('heading', { name: /Glass Room/i })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
-      - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: /Glass Room/i })
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
-         |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:14:3
+      17 |   await gotoApp(page, "/");
+      18 |
+    > 19 |   await expect(page.getByRole("heading", { name: /Glass Room/i })).toBeVisible();
+         |                                                                    ^
+      20 |   await enterRoom(page);
+      21 |
+      22 |   const versionLink = page.locator('a[title*="Open test report for"]').first();
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:19:68
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-home-renders-core-UI-and-version-report-link-chromium-retry1/test-failed-1.png
@@ -76,29 +70,26 @@
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('heading', { name: /Glass Room/i })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
-      - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: /Glass Room/i })
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
-         |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:14:3
+      17 |   await gotoApp(page, "/");
+      18 |
+    > 19 |   await expect(page.getByRole("heading", { name: /Glass Room/i })).toBeVisible();
+         |                                                                    ^
+      20 |   await enterRoom(page);
+      21 |
+      22 |   const versionLink = page.locator('a[title*="Open test report for"]').first();
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:19:68
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-home-renders-core-UI-and-version-report-link-chromium-retry2/test-failed-1.png
@@ -125,33 +116,31 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="15.798">
-<failure message="smoke.spec.ts:22:1 clicking v1.5.0 opens executive report" type="FAILURE">
-<![CDATA[  [chromium] › smoke.spec.ts:22:1 › clicking v1.5.0 opens executive report ─────────────────────────
+<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="15.413">
+<failure message="smoke.spec.ts:28:1 clicking v1.5.0 opens executive report" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:28:1 › clicking v1.5.0 opens executive report ─────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:24:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:30:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/test-failed-1.png
@@ -161,29 +150,27 @@
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:24:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:30:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium-retry1/test-failed-1.png
@@ -201,29 +188,27 @@
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:24:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:30:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium-retry2/test-failed-1.png
@@ -250,33 +235,31 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="15.78">
-<failure message="smoke.spec.ts:36:1 main control groups are visible after entering room" type="FAILURE">
-<![CDATA[  [chromium] › smoke.spec.ts:36:1 › main control groups are visible after entering room ────────────
+<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="15.423">
+<failure message="smoke.spec.ts:42:1 main control groups are visible after entering room" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:42:1 › main control groups are visible after entering room ────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:38:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:44:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-main-control-groups-are-visible-after-entering-room-chromium/test-failed-1.png
@@ -286,29 +269,27 @@
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:38:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:44:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-main-control-groups-are-visible-after-entering-room-chromium-retry1/test-failed-1.png
@@ -326,29 +307,27 @@
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:38:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:44:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-main-control-groups-are-visible-after-entering-room-chromium-retry2/test-failed-1.png
@@ -375,33 +354,31 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="15.783">
-<failure message="smoke.spec.ts:46:1 music panel can be opened, changed and closed" type="FAILURE">
-<![CDATA[  [chromium] › smoke.spec.ts:46:1 › music panel can be opened, changed and closed ──────────────────
+<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="15.407">
+<failure message="smoke.spec.ts:52:1 music panel can be opened, changed and closed" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:52:1 › music panel can be opened, changed and closed ──────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:48:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:54:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-music-panel-can-be-opened-changed-and-closed-chromium/test-failed-1.png
@@ -411,29 +388,27 @@
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:48:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:54:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-music-panel-can-be-opened-changed-and-closed-chromium-retry1/test-failed-1.png
@@ -451,29 +426,27 @@
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:48:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:54:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-music-panel-can-be-opened-changed-and-closed-chromium-retry2/test-failed-1.png
@@ -500,33 +473,31 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="15.764">
-<failure message="smoke.spec.ts:62:1 data section synth toggle switches ON and OFF" type="FAILURE">
-<![CDATA[  [chromium] › smoke.spec.ts:62:1 › data section synth toggle switches ON and OFF ──────────────────
+<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="15.414">
+<failure message="smoke.spec.ts:68:1 data section synth toggle switches ON and OFF" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:68:1 › data section synth toggle switches ON and OFF ──────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:64:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:70:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-data-section-synth-toggle-switches-ON-and-OFF-chromium/test-failed-1.png
@@ -536,29 +507,27 @@
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:64:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:70:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-data-section-synth-toggle-switches-ON-and-OFF-chromium-retry1/test-failed-1.png
@@ -576,29 +545,27 @@
 
     Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
 
-    Error: expect(locator).toBeHidden() failed
+    Error: expect(locator).toBeVisible() failed
 
-    Locator:  getByRole('button', { name: /ENTER ROOM/i }).first()
-    Expected: hidden
-    Received: visible
-    Timeout:  5000ms
+    Locator: getByRole('button', { name: /ENTER ROOM/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
 
     Call log:
-      - Expect "toBeHidden" with timeout 5000ms
+      - Expect "toBeVisible" with timeout 5000ms
       - waiting for getByRole('button', { name: /ENTER ROOM/i }).first()
-        9 × locator resolved to <button class="px-10 py-4 bg-[#2E2F2B] text-[#F2F2F0] font-light text-xl tracking-[0.3em] uppercase rounded-sm hover:bg-[#3F453F] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl border border-[#5F665F]">ENTER ROOM</button>
-          - unexpected value "visible"
 
 
-       5 |   await expect(enterButton).toBeVisible();
-       6 |   await enterButton.click();
-    >  7 |   await expect(enterButton).toBeHidden();
+       9 | const enterRoom = async (page: import("@playwright/test").Page) => {
+      10 |   const enterButton = page.getByRole("button", { name: /ENTER ROOM/i }).first();
+    > 11 |   await expect(enterButton).toBeVisible();
          |                             ^
-       8 | };
-       9 |
-      10 | test("home renders core UI and version report link", async ({ page }) => {
-        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:7:29)
-        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:64:3
+      12 |   await enterButton.click();
+      13 |   await expect(enterButton).toBeHidden();
+      14 | };
+        at enterRoom (/home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:11:29)
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:70:9
 
     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
     ../test-results/smoke-data-section-synth-toggle-switches-ON-and-OFF-chromium-retry2/test-failed-1.png
@@ -625,10 +592,173 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="0.179">
+<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="15.438">
+<failure message="smoke.spec.ts:78:1 vitest junit artifact is reachable" type="FAILURE">
+<![CDATA[  [chromium] › smoke.spec.ts:78:1 › vitest junit artifact is reachable ─────────────────────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('body')
+    Timeout: 5000ms
+    - Expected substring  - 1
+    + Received string     + 8
+
+    - testsuites
+    +
+    +         Error response
+    +         Error code: 404
+    +         Message: File not found.
+    +         Error code explanation: 404 - Nothing matches the given URI.
+    +     
+    +
+    +
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('body')
+        9 × locator resolved to <body>…</body>
+          - unexpected value "
+            Error response
+            Error code: 404
+            Message: File not found.
+            Error code explanation: 404 - Nothing matches the given URI.
+        
+    
+    "
+
+
+      78 | test("vitest junit artifact is reachable", async ({ page }) => {
+      79 |   await gotoApp(page, "/reports/vitest-results.xml");
+    > 80 |   await expect(page.locator("body")).toContainText("testsuites");
+         |                                      ^
+      81 | });
+      82 |
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:80:38
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../test-results/smoke-vitest-junit-artifact-is-reachable-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/smoke-vitest-junit-artifact-is-reachable-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('body')
+    Timeout: 5000ms
+    - Expected substring  - 1
+    + Received string     + 8
+
+    - testsuites
+    +
+    +         Error response
+    +         Error code: 404
+    +         Message: File not found.
+    +         Error code explanation: 404 - Nothing matches the given URI.
+    +     
+    +
+    +
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('body')
+        9 × locator resolved to <body>…</body>
+          - unexpected value "
+            Error response
+            Error code: 404
+            Message: File not found.
+            Error code explanation: 404 - Nothing matches the given URI.
+        
+    
+    "
+
+
+      78 | test("vitest junit artifact is reachable", async ({ page }) => {
+      79 |   await gotoApp(page, "/reports/vitest-results.xml");
+    > 80 |   await expect(page.locator("body")).toContainText("testsuites");
+         |                                      ^
+      81 | });
+      82 |
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:80:38
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace ../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('body')
+    Timeout: 5000ms
+    - Expected substring  - 1
+    + Received string     + 8
+
+    - testsuites
+    +
+    +         Error response
+    +         Error code: 404
+    +         Message: File not found.
+    +         Error code explanation: 404 - Nothing matches the given URI.
+    +     
+    +
+    +
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('body')
+        9 × locator resolved to <body>…</body>
+          - unexpected value "
+            Error response
+            Error code: 404
+            Message: File not found.
+            Error code explanation: 404 - Nothing matches the given URI.
+        
+    
+    "
+
+
+      78 | test("vitest junit artifact is reachable", async ({ page }) => {
+      79 |   await gotoApp(page, "/reports/vitest-results.xml");
+    > 80 |   await expect(page.locator("body")).toContainText("testsuites");
+         |                                      ^
+      81 | });
+      82 |
+        at /home/runner/work/glassroom/glassroom/playwright/smoke.spec.ts:80:38
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry2/error-context.md
+]]>
+</failure>
 <system-out>
 <![CDATA[
-[[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium/test-finished-1.png]]
+[[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium/error-context.md]]
+
+[[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry1/test-failed-1.png]]
+
+[[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry1/error-context.md]]
+
+[[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry1/trace.zip]]
+
+[[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry2/test-failed-1.png]]
+
+[[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium-retry2/error-context.md]]
 ]]>
 </system-out>
 </testcase>
