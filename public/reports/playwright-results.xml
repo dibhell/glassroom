@@ -1,43 +1,43 @@
-<testsuites id="" name="" tests="6" failures="0" skipped="0" errors="0" time="17.061873">
-<testsuite name="smoke.spec.ts" timestamp="2026-03-11T09:40:09.557Z" hostname="chromium" tests="6" failures="0" skipped="0" time="2.634" errors="0">
-<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="0.533">
+<testsuites id="" name="" tests="6" failures="0" skipped="0" errors="0" time="14.828681000000001">
+<testsuite name="smoke.spec.ts" timestamp="2026-03-11T09:49:49.695Z" hostname="chromium" tests="6" failures="0" skipped="0" time="2.533" errors="0">
+<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="0.479">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-home-renders-core-UI-and-version-report-link-chromium/test-finished-1.png]]
 ]]>
 </system-out>
 </testcase>
-<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="0.627">
+<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="0.609">
 <system-out>
 <![CDATA[
-[[ATTACHMENT|../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/test-finished-1.png]]
-
 [[ATTACHMENT|../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/test-finished-2.png]]
+
+[[ATTACHMENT|../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/test-finished-1.png]]
 ]]>
 </system-out>
 </testcase>
-<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="0.391">
+<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="0.403">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-main-control-groups-are-visible-after-entering-room-chromium/test-finished-1.png]]
 ]]>
 </system-out>
 </testcase>
-<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="0.488">
+<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="0.486">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-music-panel-can-be-opened-changed-and-closed-chromium/test-finished-1.png]]
 ]]>
 </system-out>
 </testcase>
-<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="0.431">
+<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="0.398">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-data-section-synth-toggle-switches-ON-and-OFF-chromium/test-finished-1.png]]
 ]]>
 </system-out>
 </testcase>
-<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="0.164">
+<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="0.158">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium/test-finished-1.png]]
