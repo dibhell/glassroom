@@ -1,0 +1,10 @@
+run_id: 20260311-084649Z-0e3641a-run22944105808-a1
+generated_at: 2026-03-11T08:46:49.881815+00:00
+status: FAIL
+tests: 29
+passed: 24
+failed_or_error: 5
+skipped: 0
+runtime_seconds: 112.623
+sources: Playwright E2E + Vitest RTL/Unit
+host: chromium, runnervm0kj6c

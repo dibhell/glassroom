@@ -1,6 +1,6 @@
-<testsuites id="" name="" tests="6" failures="5" skipped="0" errors="0" time="112.775819">
-<testsuite name="smoke.spec.ts" timestamp="2026-03-11T08:38:53.930Z" hostname="chromium" tests="6" failures="5" skipped="0" time="79.157" errors="0">
-<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="15.882">
+<testsuites id="" name="" tests="6" failures="5" skipped="0" errors="0" time="111.21759700000001">
+<testsuite name="smoke.spec.ts" timestamp="2026-03-11T08:45:10.508Z" hostname="chromium" tests="6" failures="5" skipped="0" time="79.192" errors="0">
+<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="15.824">
 <failure message="smoke.spec.ts:10:1 home renders core UI and version report link" type="FAILURE">
 <![CDATA[  [chromium] › smoke.spec.ts:10:1 › home renders core UI and version report link ───────────────────
 
@@ -125,7 +125,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="15.886">
+<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="15.814">
 <failure message="smoke.spec.ts:22:1 clicking v1.5.0 opens executive report" type="FAILURE">
 <![CDATA[  [chromium] › smoke.spec.ts:22:1 › clicking v1.5.0 opens executive report ─────────────────────────
 
@@ -250,7 +250,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="15.704">
+<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="15.774">
 <failure message="smoke.spec.ts:36:1 main control groups are visible after entering room" type="FAILURE">
 <![CDATA[  [chromium] › smoke.spec.ts:36:1 › main control groups are visible after entering room ────────────
 
@@ -375,7 +375,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="15.748">
+<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="15.816">
 <failure message="smoke.spec.ts:46:1 music panel can be opened, changed and closed" type="FAILURE">
 <![CDATA[  [chromium] › smoke.spec.ts:46:1 › music panel can be opened, changed and closed ──────────────────
 
@@ -500,7 +500,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="15.756">
+<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="15.779">
 <failure message="smoke.spec.ts:62:1 data section synth toggle switches ON and OFF" type="FAILURE">
 <![CDATA[  [chromium] › smoke.spec.ts:62:1 › data section synth toggle switches ON and OFF ──────────────────
 
@@ -625,7 +625,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="0.181">
+<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="0.185">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium/test-finished-1.png]]
