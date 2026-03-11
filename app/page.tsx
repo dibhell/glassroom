@@ -1,17 +1,13 @@
 import { Zap } from "lucide-react";
 
-import { createSessionAction } from "@/app/actions/session-actions";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { SessionList } from "@/features/session-planner/components/session-list";
-import { SessionPlannerForm } from "@/features/session-planner/components/session-planner-form";
-import { SessionStats } from "@/features/session-planner/components/session-stats";
-import { getSessions } from "@/lib/session-store";
+import { SessionPlannerClient } from "@/features/session-planner/components/session-planner-client";
+import sessionsData from "@/data/sessions.json";
+import type { Session } from "@/lib/session-types";
 
-export const dynamic = "force-dynamic";
-
-export default async function HomePage() {
-  const sessions = await getSessions();
+export default function HomePage() {
+  const initialSessions = sessionsData as Session[];
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-10 sm:px-8">
@@ -25,21 +21,16 @@ export default async function HomePage() {
             Glassroom Signal Board
           </Badge>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Harmonogram sesji oparty o React 19.2, RSC i TanStack Form.
+            Session planner with React 19.2, RSC and TanStack Form.
           </h1>
           <p className="max-w-2xl text-emerald-50/70">
-            Warstwa danych renderuje się po stronie serwera, a interaktywne formularze są
-            ograniczone do lekkich komponentów klienckich.
+            Initial data is rendered on the server, while form interactions run in lean client
+            components.
           </p>
           <Separator />
         </header>
 
-        <SessionStats sessions={sessions} />
-
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,26rem)_1fr]">
-          <SessionPlannerForm createSessionAction={createSessionAction} />
-          <SessionList sessions={sessions} />
-        </section>
+        <SessionPlannerClient initialSessions={initialSessions} />
       </div>
     </main>
   );
