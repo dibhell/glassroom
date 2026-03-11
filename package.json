@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "preview:static": "python -m http.server 4173 --directory out --bind 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

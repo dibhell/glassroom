@@ -28,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare report workspace
+        run: |
+          rm -rf test-results playwright-report
+          rm -f reports/vitest-results.xml reports/playwright-results.xml
+
       - name: Run Vitest JUnit
         id: vitest
         continue-on-error: true
