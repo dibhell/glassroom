@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const isCi = Boolean(process.env.CI);
+const baseURL = process.env.GITHUB_ACTIONS
+  ? "http://127.0.0.1:4173/glassroom"
+  : "http://127.0.0.1:4173";
+
 export default defineConfig({
   testDir: "./playwright",
   timeout: 30_000,
@@ -7,15 +12,15 @@ export default defineConfig({
     timeout: 5_000,
   },
   fullyParallel: true,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: isCi ? 2 : 0,
+  workers: isCi ? 1 : undefined,
   reporter: [
     ["list"],
     ["html", { outputFolder: "playwright-report", open: "never" }],
     ["junit", { outputFile: "reports/playwright-results.xml" }],
   ],
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL,
     screenshot: "on",
     trace: "on-first-retry",
   },
