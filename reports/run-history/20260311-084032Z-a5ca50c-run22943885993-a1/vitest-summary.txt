@@ -1,0 +1,9 @@
+source: Vitest RTL/Unit
+run_id: 20260311-084032Z-a5ca50c-run22943885993-a1
+total: 23
+passed: 23
+failed_or_error: 0
+skipped: 0
+duration_seconds: 1.168
+failed_test_cases:
+  - none
