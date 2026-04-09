@@ -13,6 +13,7 @@ from pathlib import Path
 DEFAULT_XML_PATHS = [
     "reports/vitest-results.xml",
     "reports/playwright-results.xml",
+    "reports/pytest-results.xml",
 ]
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -28,6 +29,8 @@ def source_label_from_path(path: Path) -> str:
     stem = path.stem.lower()
     if "playwright" in stem:
         return "Playwright E2E"
+    if "pytest" in stem:
+        return "Pytest Contract/Logic"
     if "vitest" in stem:
         return "Vitest RTL/Unit"
     return path.stem
@@ -52,6 +55,8 @@ def source_key_from_label(source: str) -> str:
     lowered = source.lower()
     if "playwright" in lowered:
         return "playwright"
+    if "pytest" in lowered:
+        return "pytest"
     if "vitest" in lowered:
         return "vitest"
     return re.sub(r"[^a-z0-9]+", "-", lowered).strip("-") or "suite"
@@ -110,9 +115,9 @@ def write_screenshot_index_html(path: Path, screenshot_paths: list[Path], run_di
   <meta name='viewport' content='width=device-width, initial-scale=1' />
   <title>Playwright Screenshot Index</title>
   <style>
-    body {{ font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin: 22px; color: #172B4D; }}
+    body {{ font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin: 22px; color: #E8EEF8; background: #09111D; }}
     h1 {{ margin-top: 0; }}
-    a {{ color: #0C66E4; text-decoration: none; }}
+    a {{ color: #72B6FF; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
   </style>
 </head>
@@ -300,7 +305,7 @@ def main() -> None:
         color = "#0C66E4" if c["result"] == "Passed" else "#C9372C"
         bars_html.append(
             "<div class='bar-row'>"
-            f"<div class='bar-label'>{html.escape(str(c['name']))} <span style='color:#5E6C84'>[{html.escape(str(c['source']))}]</span></div>"
+            f"<div class='bar-label'>{html.escape(str(c['name']))} <span style='color:var(--muted)'>[{html.escape(str(c['source']))}]</span></div>"
             "<div class='bar-track'>"
             f"<div class='bar-fill' style='width:{width:.2f}%; background:{color};'></div>"
             "</div>"
@@ -466,41 +471,42 @@ def main() -> None:
   <title>Glassroom Executive Test Report</title>
   <style>
     :root {{
-      --bg: #F4F6F8; --text: #172B4D; --muted: #5E6C84; --line: #DFE1E6; --panel: #FFFFFF;
-      --blue: #0C66E4; --green: #1F845A; --red: #C9372C; --yellow: #7F5F01;
+      --bg: #09111D; --bg-accent: #0E1929; --text: #E8EEF8; --muted: #98A8C4; --line: #22324A;
+      --panel: rgba(13, 22, 37, 0.94); --panel-strong: #101A2C; --panel-soft: #132036;
+      --blue: #4DA3FF; --green: #4BD59B; --red: #FF7A7A; --yellow: #EAC45C;
     }}
     * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: var(--text); background: radial-gradient(circle at 10% 0%, #E9F2FF 0%, var(--bg) 35%), var(--bg); }}
+    body {{ margin: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; color: var(--text); background: radial-gradient(circle at 10% 0%, #12243D 0%, var(--bg) 28%), radial-gradient(circle at 90% 10%, #0E335D 0%, transparent 30%), var(--bg); }}
     .wrap {{ max-width: 1240px; margin: 0 auto; padding: 26px; }}
-    .hero {{ position: relative; overflow: hidden; background: linear-gradient(130deg, #0C66E4 0%, #1D7AFC 45%, #5BA3FF 100%); border-radius: 16px; padding: 26px; color: #fff; box-shadow: 0 18px 40px rgba(9, 30, 66, 0.22); }}
-    .hero:before {{ content: ''; position: absolute; right: -120px; top: -120px; width: 320px; height: 320px; background: rgba(255,255,255,0.16); border-radius: 50%; }}
-    .hero:after {{ content: ''; position: absolute; right: 140px; bottom: -140px; width: 280px; height: 280px; background: rgba(255,255,255,0.12); border-radius: 50%; }}
+    .hero {{ position: relative; overflow: hidden; background: linear-gradient(135deg, #0D2340 0%, #133864 42%, #1C5A96 100%); border: 1px solid rgba(128, 175, 255, 0.22); border-radius: 16px; padding: 26px; color: #fff; box-shadow: 0 22px 48px rgba(0, 0, 0, 0.38); }}
+    .hero:before {{ content: ''; position: absolute; right: -120px; top: -120px; width: 320px; height: 320px; background: rgba(255,255,255,0.08); border-radius: 50%; }}
+    .hero:after {{ content: ''; position: absolute; right: 140px; bottom: -140px; width: 280px; height: 280px; background: rgba(255,255,255,0.06); border-radius: 50%; }}
     .hero h1 {{ margin: 0; font-size: 34px; letter-spacing: .02em; }} .hero p {{ margin: 8px 0 0; opacity: .95; }}
     .hero-row {{ margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; }}
-    .pill {{ display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.25); color: inherit; text-decoration: none; }}
+    .pill {{ display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16); color: inherit; text-decoration: none; backdrop-filter: blur(6px); }}
     .kpi-grid {{ margin-top: 16px; display: grid; grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 12px; }}
-    .kpi {{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: 0 2px 6px rgba(9, 30, 66, 0.05); }}
+    .kpi {{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22); }}
     .kpi .k {{ color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }} .kpi .v {{ margin-top: 7px; font-size: 30px; font-weight: 750; }} .kpi .m {{ margin-top: 8px; color: var(--muted); font-size: 12px; }}
     .layout {{ margin-top: 14px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 12px; }}
-    .panel {{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: 0 2px 6px rgba(9, 30, 66, 0.05); }} .panel h2 {{ margin: 0 0 10px; font-size: 18px; }}
+    .panel {{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22); }} .panel h2 {{ margin: 0 0 10px; font-size: 18px; }}
     .viz-grid {{ display: grid; grid-template-columns: 240px 1fr; gap: 16px; align-items: center; }} .donut-wrap {{ display: grid; place-items: center; }}
-    .donut {{ width: 180px; height: 180px; border-radius: 50%; {donut_style} display: grid; place-items: center; }} .donut::after {{ content: ''; width: 122px; height: 122px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px var(--line); }}
+    .donut {{ width: 180px; height: 180px; border-radius: 50%; {donut_style} display: grid; place-items: center; }} .donut::after {{ content: ''; width: 122px; height: 122px; border-radius: 50%; background: var(--panel-strong); box-shadow: inset 0 0 0 1px var(--line); }}
     .donut-label {{ position: absolute; text-align: center; font-weight: 700; }} .donut-label .big {{ font-size: 28px; line-height: 1; }} .donut-label .small {{ font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }}
-    .stacked {{ width: 100%; height: 16px; border-radius: 999px; overflow: hidden; background: #EBECF0; display: flex; align-items: stretch; line-height: 0; box-shadow: inset 0 0 0 1px #DFE1E6; }}
+    .stacked {{ width: 100%; height: 16px; border-radius: 999px; overflow: hidden; background: #122033; display: flex; align-items: stretch; line-height: 0; box-shadow: inset 0 0 0 1px var(--line); }}
     .seg {{ display: block; height: 100%; min-height: 100%; flex: 0 0 auto; }} .seg.pass {{ background: var(--green); }} .seg.fail {{ background: var(--red); }} .seg.skip {{ background: var(--yellow); }}
     .legend {{ margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--muted); }} .legend span {{ display: inline-flex; align-items: center; gap: 6px; }} .dot {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; }}
     .bar-row {{ display: grid; grid-template-columns: 1.1fr 2fr auto; gap: 10px; align-items: center; margin: 7px 0; }}
     .bar-label {{ font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
-    .bar-track {{ height: 12px; background: #EBECF0; border-radius: 999px; overflow: hidden; position: relative; line-height: 0; box-shadow: inset 0 0 0 1px #DFE1E6; }} .bar-fill {{ position: absolute; left: 0; top: 0; bottom: 0; height: 100%; min-height: 100%; border-radius: 999px; }}
+    .bar-track {{ height: 12px; background: #122033; border-radius: 999px; overflow: hidden; position: relative; line-height: 0; box-shadow: inset 0 0 0 1px var(--line); }} .bar-fill {{ position: absolute; left: 0; top: 0; bottom: 0; height: 100%; min-height: 100%; border-radius: 999px; }}
     .bar-time {{ font-size: 12px; color: var(--muted); min-width: 54px; text-align: right; }}
     .domain-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }}
-    .domain-card {{ background: #FAFBFC; border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }}
+    .domain-card {{ background: var(--panel-soft); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }}
     .domain-title {{ font-weight: 600; margin-bottom: 0; font-size: 13px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }}
     .domain-meta {{ margin-top: 0; color: var(--muted); font-size: 12px; }}
     .hint {{ color: var(--muted); font-size: 13px; margin: 0 0 10px; }}
     .evidence-grid {{ display: flex; flex-wrap: wrap; gap: 8px; }}
-    .evidence-link {{ display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; text-decoration: none; color: #0C66E4; background: #E9F2FF; border: 1px solid #CCE0FF; }}
-    .evidence-link:hover {{ background: #DDEBFF; }}
+    .evidence-link {{ display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; text-decoration: none; color: #A8D3FF; background: rgba(77, 163, 255, 0.12); border: 1px solid rgba(77, 163, 255, 0.28); }}
+    .evidence-link:hover {{ background: rgba(77, 163, 255, 0.2); }}
     table {{ width: 100%; border-collapse: collapse; font-size: 14px; }} th, td {{ text-align: left; border-bottom: 1px solid var(--line); padding: 10px 8px; vertical-align: top; }} th {{ color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }}
     .badge {{ display: inline-block; font-size: 12px; border-radius: 999px; border: 1px solid; padding: 2px 10px; font-weight: 600; }} .footer {{ margin-top: 10px; color: var(--muted); font-size: 12px; }}
     @media (max-width: 1100px) {{
@@ -513,20 +519,20 @@ def main() -> None:
   <div class='wrap'>
     <section class='hero'>
       <h1>Glassroom Quality Dashboard</h1>
-      <p>Executive snapshot from consolidated Vitest + Playwright suites</p>
+      <p>Executive snapshot from consolidated Vitest, Playwright and Pytest suites</p>
       <p><strong>Test types:</strong> {html.escape(test_types)}</p>
       <p><strong>Version ID:</strong> {html.escape(args.version_id)}</p>
       <div class='hero-row'>
         <span class='pill'>Run: {html.escape(run_human)}</span>
         <span class='pill'>Host: {html.escape(host_display)}</span>
         <span class='pill' style='background:{status_bg}; color:{status_tone}; border-color:{status_bg};'>Status: {status}</span>
-        <span class='pill'>Scope: Vitest + Playwright regression</span>
+        <span class='pill'>Scope: Vitest + Playwright + Pytest regression</span>
         <a class='pill' href='./executive_test_report.html'>v1.5.0 Report HTML</a>
         {source_links}
       </div>
     </section>
     <section class='kpi-grid'>
-      <div class='kpi'><div class='k'>Total Tests</div><div class='v'>{tests}</div><div class='m'>Vitest + Playwright coverage</div></div>
+      <div class='kpi'><div class='k'>Total Tests</div><div class='v'>{tests}</div><div class='m'>Vitest + Playwright + Pytest coverage</div></div>
       <div class='kpi'><div class='k'>Passed</div><div class='v' style='color:#1F845A'>{passed}</div><div class='m'>Successful checks</div></div>
       <div class='kpi'><div class='k'>Failed/Error</div><div class='v' style='color:#C9372C'>{failed_or_error}</div><div class='m'>Open defects</div></div>
       <div class='kpi'><div class='k'>Runtime</div><div class='v'>{runtime:.2f}s</div><div class='m'>Consolidated JUnit runtime</div></div>
@@ -540,7 +546,7 @@ def main() -> None:
           <div>
             <div class='stacked'><span class='seg pass' style='width:{pass_rate:.2f}%'></span><span class='seg fail' style='width:{fail_rate:.2f}%'></span><span class='seg skip' style='width:{skip_rate:.2f}%'></span></div>
             <div class='legend'><span><i class='dot' style='background:#1F845A'></i>Passed: {passed}</span><span><i class='dot' style='background:#C9372C'></i>Failed/Error: {failed_or_error}</span><span><i class='dot' style='background:#7F5F01'></i>Skipped: {skipped}</span></div>
-            <div style='margin-top:10px; color:#5E6C84; font-size:13px;'>Slowest test: <strong>{html.escape(slowest)}</strong></div>
+            <div style='margin-top:10px; color:var(--muted); font-size:13px;'>Slowest test: <strong>{html.escape(slowest)}</strong></div>
           </div>
         </div>
       </div>
@@ -549,7 +555,7 @@ def main() -> None:
     <section class='panel'><h2>Coverage Domains</h2><div class='domain-grid'>{''.join(domain_html)}</div></section>
     <section class='panel'>
       <h2>Run Evidence</h2>
-      <p class='hint'>Repository snapshots for this execution (TXT summaries, XML snapshots, and Playwright screenshots index).</p>
+      <p class='hint'>Repository snapshots for this execution, including Vitest, Playwright, Pytest and the Playwright screenshots index.</p>
       <div class='evidence-grid'>{evidence_links_html}</div>
     </section>
     <section class='panel'>
