@@ -28,18 +28,31 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Install Python test dependencies
+        run: python -m pip install --upgrade pip pytest
 
       - name: Prepare report workspace
         run: |
           rm -rf test-results playwright-report
-          rm -f reports/vitest-results.xml reports/playwright-results.xml
+          rm -f reports/vitest-results.xml reports/playwright-results.xml reports/pytest-results.xml
 
       - name: Run Vitest JUnit
         id: vitest
         continue-on-error: true
         run: npm run test:junit
+
+      - name: Run Pytest JUnit
+        id: pytest
+        continue-on-error: true
+        run: npm run test:py
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -87,6 +100,14 @@ jobs:
           path: reports/vitest-results.xml
           if-no-files-found: ignore
 
+      - name: Upload Pytest JUnit XML
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pytest-results-xml
+          path: reports/pytest-results.xml
+          if-no-files-found: ignore
+
       - name: Commit updated report artifacts
         if: always()
         run: |
@@ -114,7 +135,7 @@ jobs:
           fi
 
       - name: Fail job when tests failed
-        if: steps.vitest.outcome == 'failure' || steps.playwright.outcome == 'failure'
+        if: steps.vitest.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.playwright.outcome == 'failure'
         run: |
-          echo "Vitest or Playwright suite failed."
+          echo "Vitest, Pytest or Playwright suite failed."
           exit 1

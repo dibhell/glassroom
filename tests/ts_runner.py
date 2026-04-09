@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -10,14 +11,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def run_ts_json(script: str) -> Any:
+    local_tsx = REPO_ROOT / "node_modules" / ".bin" / ("tsx.cmd" if os.name == "nt" else "tsx")
     npx_cmd = "npx.cmd" if shutil.which("npx.cmd") else "npx"
     with tempfile.NamedTemporaryFile(mode="w", suffix=".ts", delete=False, dir=REPO_ROOT) as tmp:
         tmp.write(script)
         temp_path = Path(tmp.name)
 
     try:
+        command = [str(local_tsx), str(temp_path)] if local_tsx.exists() else [npx_cmd, "--yes", "tsx", str(temp_path)]
         result = subprocess.run(
-            [npx_cmd, "--yes", "tsx", str(temp_path)],
+            command,
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,

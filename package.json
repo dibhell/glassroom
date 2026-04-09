@@ -10,6 +10,7 @@
     "preview:static": "python -m http.server 4173 --directory out --bind 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:py": "python -m pytest tests -q --junitxml=reports/pytest-results.xml",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:junit": "vitest run --reporter=default --reporter=junit --outputFile=reports/vitest-results.xml",
@@ -47,6 +48,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "jsdom": "^28.0.0",
     "tailwindcss": "^4.2.1",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
