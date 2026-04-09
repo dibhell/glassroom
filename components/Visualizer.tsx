@@ -219,6 +219,60 @@ const DOT_FONT: Record<string, string[]> = {
     '10000',
     '10000',
   ],
+  ' ': [
+    '000',
+    '000',
+    '000',
+    '000',
+    '000',
+    '000',
+    '000',
+  ],
+  'L': [
+    '10000',
+    '10000',
+    '10000',
+    '10000',
+    '10000',
+    '10000',
+    '11111',
+  ],
+  'K': [
+    '10001',
+    '10010',
+    '10100',
+    '11000',
+    '10100',
+    '10010',
+    '10001',
+  ],
+  'H': [
+    '10001',
+    '10001',
+    '10001',
+    '11111',
+    '10001',
+    '10001',
+    '10001',
+  ],
+  'E': [
+    '11111',
+    '10000',
+    '10000',
+    '11110',
+    '10000',
+    '10000',
+    '11111',
+  ],
+  'R': [
+    '11110',
+    '10001',
+    '10001',
+    '11110',
+    '10100',
+    '10010',
+    '10001',
+  ],
 };
 const DIGIT_OVERLAY_FADE_MS = 700;
 const DIGIT_OVERLAY_MIN_R2D = 14;
@@ -228,6 +282,10 @@ const TESLA_MIN_DIST = 80;
 const TESLA_SPARKS = 9;
 const PUFF_PARTICLES = 12;
 const PUFF_VELOCITY = 6;
+const INTRO_PROMPT_TEXT = 'CLICK HERE';
+const INTRO_PROMPT_Z = 120;
+const INTRO_PROMPT_FADE_MS = 180;
+const INTRO_PROMPT_PARTICLE_JITTER = 1.8;
 
 type JellyState = {
   sx: number; sy: number; rot: number;
@@ -287,6 +345,11 @@ type DotTextLayout = {
   rows: number;
   colsList: number[];
   totalCols: number;
+};
+
+type IntroPromptState = {
+  visible: boolean;
+  dismissStartedAt: number | null;
 };
 
 export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
@@ -375,6 +438,10 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       { b1: null, b2: null, dist: Infinity },
       { b1: null, b2: null, dist: Infinity },
     ]);
+    const introPromptRef = useRef<IntroPromptState>({
+      visible: true,
+      dismissStartedAt: null,
+    });
 
     // Drawing State
     const isDrawingRef = useRef(false);
@@ -403,6 +470,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         gyroAutoRef.current.blend = 0;
         gyroHintRef.current.until = 0;
         frameIdRef.current = 0;
+        introPromptRef.current = { visible: true, dismissStartedAt: null };
         audioService.setSpatialControl(0, 0, 0);
       },
     }));
@@ -615,6 +683,135 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       const layout = { glyphs, rows, colsList, totalCols };
       cache.set(text, layout);
       return layout;
+    };
+
+    const getPromptLayoutMetrics = (w: number, h: number) => {
+      const layout = getDotTextLayout(INTRO_PROMPT_TEXT);
+      if (!layout) return null;
+      const cell = Math.max(8, Math.min(w * 0.018, h * 0.06));
+      const width = Math.max(cell, (layout.totalCols - 1) * cell);
+      const height = Math.max(cell, (layout.rows - 1) * cell);
+      const centerX = w / 2;
+      const centerY = h * 0.54;
+      return { layout, cell, width, height, centerX, centerY };
+    };
+
+    const drawFlatDotText = (
+      ctx: CanvasRenderingContext2D,
+      text: string,
+      centerX: number,
+      centerY: number,
+      cell: number,
+      alpha: number,
+    ) => {
+      const layout = getDotTextLayout(text);
+      if (!layout) return;
+      const { glyphs, rows, colsList, totalCols } = layout;
+      const gapCols = 1;
+      const dotR = Math.max(1.3, cell * 0.36);
+      const halfW = ((totalCols - 1) * cell) / 2;
+      const halfH = ((rows - 1) * cell) / 2;
+      let cursorX = centerX - halfW;
+
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+      ctx.fillStyle = 'rgba(244, 247, 242, 0.92)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.24)';
+      ctx.lineWidth = Math.max(0.75, dotR * 0.22);
+
+      for (let gi = 0; gi < glyphs.length; gi++) {
+        const pattern = glyphs[gi];
+        const cols = colsList[gi];
+        for (let r = 0; r < pattern.length; r++) {
+          const row = pattern[r];
+          for (let c = 0; c < row.length; c++) {
+            if (row[c] !== '1') continue;
+            const px = cursorX + c * cell;
+            const py = centerY - halfH + r * cell;
+            ctx.beginPath();
+            ctx.arc(px, py, dotR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+        cursorX += (cols + gapCols) * cell;
+      }
+      ctx.restore();
+    };
+
+    const shatterIntroPrompt = (clickX: number, clickY: number, nowMs: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const prompt = introPromptRef.current;
+      if (!prompt.visible) return;
+
+      const metrics = getPromptLayoutMetrics(canvas.width, canvas.height);
+      if (!metrics) {
+        prompt.visible = false;
+        prompt.dismissStartedAt = nowMs;
+        return;
+      }
+
+      const { layout, cell, centerX, centerY } = metrics;
+      const { glyphs, rows, colsList, totalCols } = layout;
+      const gapCols = 1;
+      const halfW = ((totalCols - 1) * cell) / 2;
+      const halfH = ((rows - 1) * cell) / 2;
+      let cursorX = centerX - halfW;
+
+      for (let gi = 0; gi < glyphs.length; gi++) {
+        const pattern = glyphs[gi];
+        const cols = colsList[gi];
+        for (let r = 0; r < pattern.length; r++) {
+          const row = pattern[r];
+          for (let c = 0; c < row.length; c++) {
+            if (row[c] !== '1') continue;
+            const px = cursorX + c * cell;
+            const py = centerY - halfH + r * cell;
+            const world = screenToWorld(px, py, INTRO_PROMPT_Z, canvas.width, canvas.height);
+            const awayX = px - clickX;
+            const awayY = py - clickY;
+            const awayLen = Math.hypot(awayX, awayY) || 1;
+            const impulse = 1.8 + Math.random() * 3.2;
+            const p = acquireParticle();
+            p.x = world.x + (Math.random() - 0.5) * INTRO_PROMPT_PARTICLE_JITTER;
+            p.y = world.y + (Math.random() - 0.5) * INTRO_PROMPT_PARTICLE_JITTER;
+            p.z = INTRO_PROMPT_Z + (Math.random() - 0.5) * 12;
+            p.vx = (awayX / awayLen) * impulse + (Math.random() - 0.5) * 1.4;
+            p.vy = (awayY / awayLen) * impulse + (Math.random() - 0.5) * 1.4;
+            p.vz = (Math.random() - 0.5) * 2.4;
+            p.life = 0.45 + Math.random() * 0.35;
+            p.color = 'rgba(245,248,244,0.95)';
+            p.size = Math.max(0.9, cell * 0.12 + Math.random() * 0.8);
+            particlesRef.current.push(p);
+          }
+        }
+        cursorX += (cols + gapCols) * cell;
+      }
+
+      prompt.visible = false;
+      prompt.dismissStartedAt = nowMs;
+    };
+
+    const drawIntroPrompt = (ctx: CanvasRenderingContext2D, w: number, h: number, nowMs: number) => {
+      const prompt = introPromptRef.current;
+      if (!prompt.visible && prompt.dismissStartedAt == null) return;
+      const metrics = getPromptLayoutMetrics(w, h);
+      if (!metrics) return;
+
+      let alpha = 0;
+      if (prompt.visible) {
+        alpha = 0.68 + Math.sin(nowMs * 0.0042) * 0.14;
+      } else if (prompt.dismissStartedAt != null) {
+        const elapsed = nowMs - prompt.dismissStartedAt;
+        alpha = 1 - Math.min(1, elapsed / INTRO_PROMPT_FADE_MS);
+        if (alpha <= 0.02) {
+          prompt.dismissStartedAt = null;
+          return;
+        }
+      }
+
+      drawFlatDotText(ctx, INTRO_PROMPT_TEXT, metrics.centerX, metrics.centerY, metrics.cell, alpha);
     };
 
     const acquireParticle = () => {
@@ -1108,6 +1305,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
 
       isDrawingRef.current = true;
       lastSpawnPos.current = { x, y };
+      shatterIntroPrompt(x, y, performance.now());
       spawnBubble(x, y, 50);
       // no pointer capture needed for spawn-only
     };
@@ -2130,6 +2328,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
           bubbles.sort((a, b) => b.z - a.z);
           drawWallReflections(ctx, bubbles, canvas.width, canvas.height, phys.geometryWarp, phys.roomWave, time);
           bubbles.forEach(b => drawAmoeba(ctx, b, canvas.width, canvas.height, 0, false, nowMs));
+          drawIntroPrompt(ctx, canvas.width, canvas.height, nowMs);
           drawSpatialGyro(ctx, canvas.width, canvas.height, time);
           requestRef.current = requestAnimationFrame(animate);
           return;
@@ -2516,6 +2715,7 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
         bubbles.sort((a, b) => b.z - a.z);
         drawWallReflections(ctx, bubbles, canvas.width, canvas.height, phys.geometryWarp, phys.roomWave, time);
         bubbles.forEach(b => drawAmoeba(ctx, b, canvas.width, canvas.height, (b.z / DEPTH) * 6, b.overlapFrame === frameId, nowMs));
+        drawIntroPrompt(ctx, canvas.width, canvas.height, nowMs);
 
         drawHUD(ctx, topPairs, canvas.width, canvas.height);
         drawSpatialGyro(ctx, canvas.width, canvas.height, time);
