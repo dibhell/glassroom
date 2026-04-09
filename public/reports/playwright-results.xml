@@ -1,6 +1,6 @@
-<testsuites id="" name="" tests="7" failures="0" skipped="0" errors="0" time="19.647133">
-<testsuite name="smoke.spec.ts" timestamp="2026-04-09T17:33:14.114Z" hostname="chromium" tests="7" failures="0" skipped="0" time="7.273" errors="0">
-<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="1.223">
+<testsuites id="" name="" tests="7" failures="0" skipped="0" errors="0" time="23.110294">
+<testsuite name="smoke.spec.ts" timestamp="2026-04-09T21:04:55.557Z" hostname="chromium" tests="7" failures="0" skipped="0" time="8.072" errors="0">
+<testcase name="home renders core UI and version report link" classname="smoke.spec.ts" time="1.345">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-home-renders-core-UI-and-version-report-link-chromium/attachments/home-hero-6f4dbcbfb3ba2780e171e4fdb0d596bdaff6dda2.png]]
@@ -15,7 +15,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="1.965">
+<testcase name="clicking v1.5.0 opens executive report" classname="smoke.spec.ts" time="2.075">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/attachments/report-launch-landing-14d3d0f455af8084492192700599ecc030365c62.png]]
@@ -26,13 +26,13 @@
 
 [[ATTACHMENT|../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/attachments/report-dashboard-b383b3ccc8bef801fe0a2bf25e3b6124b32d9b7f.png]]
 
-[[ATTACHMENT|../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/test-finished-1.png]]
-
 [[ATTACHMENT|../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/test-finished-2.png]]
+
+[[ATTACHMENT|../test-results/smoke-clicking-v1-5-0-opens-executive-report-chromium/test-finished-1.png]]
 ]]>
 </system-out>
 </testcase>
-<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="0.943">
+<testcase name="main control groups are visible after entering room" classname="smoke.spec.ts" time="1.048">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-main-control-groups-are-visible-after-entering-room-chromium/attachments/control-groups-landing-f1d5bffa121a0bec1cc20fbf0c04a42b0989fe55.png]]
@@ -45,7 +45,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="1.379">
+<testcase name="music panel can be opened, changed and closed" classname="smoke.spec.ts" time="1.581">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-music-panel-can-be-opened-changed-and-closed-chromium/attachments/music-panel-landing-f21e7e3ae9d842e05a4a275e017d69370edeed3b.png]]
@@ -62,7 +62,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="1.169">
+<testcase name="data section synth toggle switches ON and OFF" classname="smoke.spec.ts" time="1.358">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-data-section-synth-toggle-switches-ON-and-OFF-chromium/attachments/synth-toggle-landing-777df06fd5e59cf9b8a13fb26cf543626d79e758.png]]
@@ -77,7 +77,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="0.419">
+<testcase name="vitest junit artifact is reachable" classname="smoke.spec.ts" time="0.436">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-vitest-junit-artifact-is-reachable-chromium/attachments/vitest-junit-xml-f5fd245afbb189e176daab9b40466d5a408fc006.png]]
@@ -86,7 +86,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="pytest junit artifact is reachable" classname="smoke.spec.ts" time="0.175">
+<testcase name="pytest junit artifact is reachable" classname="smoke.spec.ts" time="0.229">
 <system-out>
 <![CDATA[
 [[ATTACHMENT|../test-results/smoke-pytest-junit-artifact-is-reachable-chromium/attachments/pytest-junit-xml-bb32f53dc760132e8d176540bd4f8278bdcaf912.png]]
