@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Signal Board",
-  description: "RSC planner dla sesji audio z TanStack Form i Shadcn/UI.",
+  title: "Glass Room",
+  description:
+    "Glass Room to interaktywny system generatywnego audio, w ktorym szklane obiekty i fizyka ruchu tworza ambientowe struktury dzwiekowe.",
 };
 
 interface RootLayoutProps {
