@@ -689,8 +689,8 @@ export const Visualizer = forwardRef<VisualizerHandle, VisualizerProps>(
       const layout = getDotTextLayout(INTRO_PROMPT_TEXT);
       if (!layout) return null;
       const promptCols = Math.max(1, layout.totalCols - 1);
-      const maxPromptWidth = w * 0.78;
-      const cell = Math.max(8, Math.min(w * 0.018, h * 0.06, maxPromptWidth / promptCols));
+      const maxPromptWidth = w * 0.06;
+      const cell = Math.max(3, Math.min(w * 0.018, h * 0.06, maxPromptWidth / promptCols));
       const width = Math.max(cell, (layout.totalCols - 1) * cell);
       const height = Math.max(cell, (layout.rows - 1) * cell);
       const centerX = w / 2;
