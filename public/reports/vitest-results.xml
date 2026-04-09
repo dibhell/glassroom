@@ -1,71 +1,71 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="75" failures="0" errors="0" time="1.066027021">
-    <testsuite name="vitest/app.ui.test.tsx" timestamp="2026-04-09T16:49:44.027Z" hostname="runnervm727z3" tests="4" failures="0" errors="0" skipped="0" time="0.341439618">
-        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; renders version link to test report and updated footer year" time="0.179738903">
+<testsuites name="vitest tests" tests="75" failures="0" errors="0" time="1.119257155">
+    <testsuite name="vitest/app.ui.test.tsx" timestamp="2026-04-09T17:05:47.792Z" hostname="runnervm35a4x" tests="4" failures="0" errors="0" skipped="0" time="0.373941908">
+        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; renders version link to test report and updated footer year" time="0.198425974">
         </testcase>
-        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; shows ENTER ROOM overlay and calls audio bootstrap on click" time="0.045492239">
+        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; shows ENTER ROOM overlay and calls audio bootstrap on click" time="0.04803099">
         </testcase>
-        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; opens and closes the Music panel from icon click and outside click" time="0.067706636">
+        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; opens and closes the Music panel from icon click and outside click" time="0.069093554">
         </testcase>
-        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; propagates music setting changes to audioService.updateMusicSettings" time="0.046929187">
+        <testcase classname="vitest/app.ui.test.tsx" name="App UI regression (RTL) &gt; propagates music setting changes to audioService.updateMusicSettings" time="0.056865686">
         </testcase>
     </testsuite>
-    <testsuite name="vitest/audioEngine.test.ts" timestamp="2026-04-09T16:49:44.029Z" hostname="runnervm727z3" tests="39" failures="0" errors="0" skipped="0" time="0.068282433">
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; uses synth when it is the only source" time="0.004188701">
+    <testsuite name="vitest/audioEngine.test.ts" timestamp="2026-04-09T17:05:47.793Z" hostname="runnervm35a4x" tests="39" failures="0" errors="0" skipped="0" time="0.048833454">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; uses synth when it is the only source" time="0.002907645">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; returns null when no source is available and synth is disabled" time="0.000832534">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; returns null when no source is available and synth is disabled" time="0.000498129">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; cycles through mixed sources in round-robin order" time="0.001451684">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; cycles through mixed sources in round-robin order" time="0.001260521">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; formats pool and bank labels for loaded sources" time="0.001347515">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; formats pool and bank labels for loaded sources" time="0.000827734">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; reports when the mic bank is full" time="0.000388876">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; reports when the mic bank is full" time="0.000547451">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; supports slot search and slot clear operations" time="0.000681251">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; supports slot search and slot clear operations" time="0.000594509">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; ignores out-of-range slot clearing requests" time="0.000499834">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; ignores out-of-range slot clearing requests" time="0.000376021">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; clears all loaded samples and resets loaded state" time="0.000934056">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; clears all loaded samples and resets loaded state" time="0.00043449">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; re-enables synth when switching to SYNTH mode" time="0.000647072">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio source pool &gt; re-enables synth when switching to SYNTH mode" time="0.000544134">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; reads peak level from the main analyser" time="0.001649831">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; reads peak level from the main analyser" time="0.001104468">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; returns a default peak level when no peak analyser exists" time="0.000247999">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; returns a default peak level when no peak analyser exists" time="0.000289028">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; computes stereo levels and caches waveform buffers" time="0.000728499">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; computes stereo levels and caches waveform buffers" time="0.000819949">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; returns null stereo waveform without both analysers" time="0.000434766">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; returns null stereo waveform without both analysers" time="0.0003954">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; reuses stereo waveform buffers between calls" time="0.000722367">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; reuses stereo waveform buffers between calls" time="0.000522594">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; delegates primeFromGesture to init and resume" time="0.000982528">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; delegates primeFromGesture to init and resume" time="0.000957867">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; resumes the audio context and starts background drone when hidden" time="0.000950151">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; resumes the audio context and starts background drone when hidden" time="0.000782209">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; keeps the context alive on suspend when a mic stream is attached" time="0.000615471">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; keeps the context alive on suspend when a mic stream is attached" time="0.000588214">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; suspends the context when mic capture is not active" time="0.000311818">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio analysers and lifecycle &gt; suspends the context when mic capture is not active" time="0.000259063">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps wet controls and lofi params" time="0.002770965">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps wet controls and lofi params" time="0.001875598">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; updates compressor, limiter, EQ and wet routing from settings" time="0.00229481">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; updates compressor, limiter, EQ and wet routing from settings" time="0.001950588">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps master gain and reuses the last safe value for NaN" time="0.000458372">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps master gain and reuses the last safe value for NaN" time="0.000399435">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps mic gain between 0 and 4" time="0.000331056">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps mic gain between 0 and 4" time="0.000376272">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps EQ gains to a safe range" time="0.000488599">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps EQ gains to a safe range" time="0.000571937">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps spatial control values" time="0.000461478">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; clamps spatial control values" time="0.000354">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; builds constrained intervals for drone scales" time="0.000791882">
+        <testcase classname="vitest/audioEngine.test.ts" name="audio interactions &gt; builds constrained intervals for drone scales" time="0.001296938">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; respects MAX_VOICES polyphony guard in triggerSound" time="0.001814362">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; respects MAX_VOICES polyphony guard in triggerSound" time="0.001881388">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; returns early from triggerSound when playback should stay suspended" time="0.000363008">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; returns early from triggerSound when playback should stay suspended" time="0.000339033">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; handles worklet loading failure gracefully" time="0.012384154">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; handles worklet loading failure gracefully" time="0.009729544">
             <system-err>
 Lofi worklet unavailable, bypassing crusher. Error: Network Error
     at [90m/home/runner/work/glassroom/glassroom/[39mvitest/audioEngine.test.ts:582:46
@@ -81,17 +81,17 @@ Lofi worklet unavailable, bypassing crusher. Error: Network Error
 
             </system-err>
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; prefers the recording destination stream over the live mic stream" time="0.000346895">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; prefers the recording destination stream over the live mic stream" time="0.000333391">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; attaches a new mic stream and reconnects the mic chain" time="0.004410613">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; attaches a new mic stream and reconnects the mic chain" time="0.001364414">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; falls back to generic getUserMedia constraints when the preferred ones fail" time="0.001780755">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; falls back to generic getUserMedia constraints when the preferred ones fail" time="0.005488235">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; returns a floor mic level when no mic meter exists" time="0.000272145">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; returns a floor mic level when no mic meter exists" time="0.000260756">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; computes the mic peak level from waveform bytes" time="0.004402034">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; computes the mic peak level from waveform bytes" time="0.000345234">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; loads sample files while skipping long and broken assets" time="0.010978135">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; loads sample files while skipping long and broken assets" time="0.00233781">
             <system-err>
 Sample too long (&gt;10s): too-long.wav
 
@@ -109,91 +109,91 @@ Failed to load sample Error: decode failed
 
             </system-err>
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; overwrites sample slots starting from the requested index" time="0.000521461">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; overwrites sample slots starting from the requested index" time="0.000781708">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; rejects mic recordings longer than ten seconds" time="0.001290272">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; rejects mic recordings longer than ten seconds" time="0.000659069">
             <system-err>
 Recorded sample too long (&gt;10s), rejecting.
 
             </system-err>
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; stores a mic recording and advances the insert cursor" time="0.000599015">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; stores a mic recording and advances the insert cursor" time="0.000517476">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; stores a sample blob in the first free sample slot" time="0.000716985">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; stores a sample blob in the first free sample slot" time="0.000832402">
         </testcase>
-        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; returns the current context state when available" time="0.000204048">
-        </testcase>
-    </testsuite>
-    <testsuite name="vitest/mixer.ui.test.tsx" timestamp="2026-04-09T16:49:44.035Z" hostname="runnervm727z3" tests="4" failures="0" errors="0" skipped="0" time="0.492516032">
-        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; calls transport callbacks on play/stop click" time="0.128342358">
-        </testcase>
-        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; toggles synth source from data section" time="0.265712151">
-        </testcase>
-        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; loads sample files from hidden input change" time="0.052444679">
-        </testcase>
-        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; toggles LO-FI from cassette switch" time="0.044389828">
+        <testcase classname="vitest/audioEngine.test.ts" name="engine stability and media handling &gt; returns the current context state when available" time="0.00024137">
         </testcase>
     </testsuite>
-    <testsuite name="vitest/music.test.ts" timestamp="2026-04-09T16:49:44.036Z" hostname="runnervm727z3" tests="8" failures="0" errors="0" skipped="0" time="0.009050664">
-        <testcase classname="vitest/music.test.ts" name="music scales &gt; falls back to default scale" time="0.002325656">
+    <testsuite name="vitest/mixer.ui.test.tsx" timestamp="2026-04-09T17:05:47.801Z" hostname="runnervm35a4x" tests="4" failures="0" errors="0" skipped="0" time="0.538855671">
+        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; calls transport callbacks on play/stop click" time="0.136754177">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="music scales &gt; keeps normalized pitch-class intervals" time="0.000546031">
+        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; toggles synth source from data section" time="0.289786915">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="quantize &gt; respects nearest/down/up and no repeat" time="0.000670785">
+        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; loads sample files from hidden input change" time="0.05921801">
         </testcase>
-        <testcase classname="vitest/music.test.ts" name="quantize &gt; supports noThirds and leading-tone penalty" time="0.00059444">
-        </testcase>
-        <testcase classname="vitest/music.test.ts" name="quantize &gt; falls back to root for non-finite input" time="0.000303844">
-        </testcase>
-        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; maps pitch classes and note names" time="0.000449397">
-        </testcase>
-        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; converts midi and frequency safely" time="0.000685887">
-        </testcase>
-        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; snaps midi to target pitch class" time="0.000761398">
+        <testcase classname="vitest/mixer.ui.test.tsx" name="Mixer UI (RTL) &gt; toggles LO-FI from cassette switch" time="0.051473293">
         </testcase>
     </testsuite>
-    <testsuite name="vitest/session-core.test.ts" timestamp="2026-04-09T16:49:44.037Z" hostname="runnervm727z3" tests="14" failures="0" errors="0" skipped="0" time="0.028354914">
-        <testcase classname="vitest/session-core.test.ts" name="session core helpers &gt; formats session dates for the Polish locale" time="0.002749711">
+    <testsuite name="vitest/music.test.ts" timestamp="2026-04-09T17:05:47.802Z" hostname="runnervm35a4x" tests="8" failures="0" errors="0" skipped="0" time="0.006570923">
+        <testcase classname="vitest/music.test.ts" name="music scales &gt; falls back to default scale" time="0.001900655">
         </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session core helpers &gt; merges Tailwind classes without keeping conflicting duplicates" time="0.008720372">
+        <testcase classname="vitest/music.test.ts" name="music scales &gt; keeps normalized pitch-class intervals" time="0.000427768">
         </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; trims string fields and keeps enum values" time="0.003279861">
+        <testcase classname="vitest/music.test.ts" name="quantize &gt; respects nearest/down/up and no repeat" time="0.000595059">
         </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; defaults missing notes to an empty string" time="0.000745362">
+        <testcase classname="vitest/music.test.ts" name="quantize &gt; supports noThirds and leading-tone penalty" time="0.000499842">
         </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects titles shorter than three characters" time="0.001189111">
+        <testcase classname="vitest/music.test.ts" name="quantize &gt; falls back to root for non-finite input" time="0.000289931">
         </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects hosts shorter than two characters" time="0.000544669">
+        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; maps pitch classes and note names" time="0.000344603">
         </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects invalid ISO datetimes" time="0.000562734">
+        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; converts midi and frequency safely" time="0.000539937">
         </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects durations below the minimum" time="0.00046728">
-        </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects durations above the maximum" time="0.000472897">
-        </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects notes longer than the limit" time="0.000579613">
-        </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects unknown energy values" time="0.000768018">
-        </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="createSessionAction &gt; returns the first validation error without hitting the store" time="0.001622789">
-        </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="createSessionAction &gt; persists valid payloads and revalidates the home page" time="0.00367052">
-        </testcase>
-        <testcase classname="vitest/session-core.test.ts" name="createSessionAction &gt; returns a generic persistence error when the store throws" time="0.000564272">
+        <testcase classname="vitest/music.test.ts" name="notes helpers &gt; snaps midi to target pitch class" time="0.000281314">
         </testcase>
     </testsuite>
-    <testsuite name="vitest/session-store.test.ts" timestamp="2026-04-09T16:49:44.039Z" hostname="runnervm727z3" tests="6" failures="0" errors="0" skipped="0" time="0.12638336">
-        <testcase classname="vitest/session-store.test.ts" name="session store &gt; creates the backing file and returns an empty list when data is missing" time="0.085458903">
+    <testsuite name="vitest/session-core.test.ts" timestamp="2026-04-09T17:05:47.803Z" hostname="runnervm35a4x" tests="14" failures="0" errors="0" skipped="0" time="0.026980545">
+        <testcase classname="vitest/session-core.test.ts" name="session core helpers &gt; formats session dates for the Polish locale" time="0.003092948">
         </testcase>
-        <testcase classname="vitest/session-store.test.ts" name="session store &gt; returns an empty list when the data file is blank" time="0.006483915">
+        <testcase classname="vitest/session-core.test.ts" name="session core helpers &gt; merges Tailwind classes without keeping conflicting duplicates" time="0.008056554">
         </testcase>
-        <testcase classname="vitest/session-store.test.ts" name="session store &gt; sorts sessions by start time when reading from disk" time="0.006372187">
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; trims string fields and keeps enum values" time="0.003136298">
         </testcase>
-        <testcase classname="vitest/session-store.test.ts" name="session store &gt; persists a validated session with generated identifiers" time="0.014944062">
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; defaults missing notes to an empty string" time="0.000525029">
         </testcase>
-        <testcase classname="vitest/session-store.test.ts" name="session store &gt; normalizes missing notes to an empty string when saving" time="0.005271461">
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects titles shorter than three characters" time="0.000940835">
         </testcase>
-        <testcase classname="vitest/session-store.test.ts" name="session store &gt; rejects invalid drafts before writing them" time="0.005223515">
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects hosts shorter than two characters" time="0.000493931">
+        </testcase>
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects invalid ISO datetimes" time="0.000733077">
+        </testcase>
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects durations below the minimum" time="0.000426615">
+        </testcase>
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects durations above the maximum" time="0.000488351">
+        </testcase>
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects notes longer than the limit" time="0.000475848">
+        </testcase>
+        <testcase classname="vitest/session-core.test.ts" name="session draft schema &gt; rejects unknown energy values" time="0.000655112">
+        </testcase>
+        <testcase classname="vitest/session-core.test.ts" name="createSessionAction &gt; returns the first validation error without hitting the store" time="0.001294514">
+        </testcase>
+        <testcase classname="vitest/session-core.test.ts" name="createSessionAction &gt; persists valid payloads and revalidates the home page" time="0.00346403">
+        </testcase>
+        <testcase classname="vitest/session-core.test.ts" name="createSessionAction &gt; returns a generic persistence error when the store throws" time="0.000537001">
+        </testcase>
+    </testsuite>
+    <testsuite name="vitest/session-store.test.ts" timestamp="2026-04-09T17:05:47.806Z" hostname="runnervm35a4x" tests="6" failures="0" errors="0" skipped="0" time="0.124074654">
+        <testcase classname="vitest/session-store.test.ts" name="session store &gt; creates the backing file and returns an empty list when data is missing" time="0.088613327">
+        </testcase>
+        <testcase classname="vitest/session-store.test.ts" name="session store &gt; returns an empty list when the data file is blank" time="0.006782589">
+        </testcase>
+        <testcase classname="vitest/session-store.test.ts" name="session store &gt; sorts sessions by start time when reading from disk" time="0.006006551">
+        </testcase>
+        <testcase classname="vitest/session-store.test.ts" name="session store &gt; persists a validated session with generated identifiers" time="0.012774813">
+        </testcase>
+        <testcase classname="vitest/session-store.test.ts" name="session store &gt; normalizes missing notes to an empty string when saving" time="0.004281291">
+        </testcase>
+        <testcase classname="vitest/session-store.test.ts" name="session store &gt; rejects invalid drafts before writing them" time="0.00360917">
         </testcase>
     </testsuite>
 </testsuites>
