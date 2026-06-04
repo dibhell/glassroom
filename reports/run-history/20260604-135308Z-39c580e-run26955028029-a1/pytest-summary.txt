@@ -1,0 +1,9 @@
+source: Pytest Contract/Logic
+run_id: 20260604-135308Z-39c580e-run26955028029-a1
+total: 25
+passed: 25
+failed_or_error: 0
+skipped: 0
+duration_seconds: 0.736
+failed_test_cases:
+  - none
