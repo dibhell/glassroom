@@ -16,7 +16,14 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="pl">
-      <body>{children}</body>
+      <body>
+        {children}
+        <script
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "fa40b2ad9eae40bea749d8d56cc3f32a"}'
+        />
+      </body>
     </html>
   );
 }
