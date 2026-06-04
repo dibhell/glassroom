@@ -1,0 +1,10 @@
+run_id: 20260409-210506Z-91baba0-run24213245378-a1
+generated_at: 2026-04-09T21:05:06.792016+00:00
+status: PASS
+tests: 107
+passed: 107
+failed_or_error: 0
+skipped: 0
+runtime_seconds: 24.324
+sources: Playwright E2E + Pytest Contract/Logic + Vitest RTL/Unit
+host: chromium, runnervm35a4x
